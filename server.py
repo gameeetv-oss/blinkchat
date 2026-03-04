@@ -1,41 +1,16 @@
 import asyncio, json, uuid, os, pathlib
 from aiohttp import web, WSMsgType
-import requests
-from requests.auth import HTTPBasicAuth
 
-PORT        = int(os.getenv("PORT", 8080))
-BASE        = pathlib.Path(__file__).parent
-TWILIO_SID  = os.getenv("TWILIO_SID")
-TWILIO_TOKEN= os.getenv("TWILIO_TOKEN")
+PORT = int(os.getenv("PORT", 8080))
+BASE = pathlib.Path(__file__).parent
 
 waiting_user = None
 rooms = {}
 user_rooms = {}
 online = 0
 
-def get_ice_servers():
-    """Twilio Network Traversal Service'ten TURN credentials al."""
-    try:
-        r = requests.post(
-            f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Tokens.json",
-            auth=HTTPBasicAuth(TWILIO_SID, TWILIO_TOKEN),
-            timeout=5
-        )
-        data = r.json()
-        return data.get("ice_servers", [])
-    except Exception as e:
-        print(f"Twilio TURN hatasi: {e}")
-        return [
-            {"url": "stun:stun.l.google.com:19302"},
-            {"url": "stun:stun1.l.google.com:19302"},
-        ]
-
 async def index(request):
     return web.FileResponse(BASE / "static" / "index.html")
-
-async def ice_handler(request):
-    servers = await asyncio.to_thread(get_ice_servers)
-    return web.json_response({"ice_servers": servers})
 
 async def ws_handler(request):
     global waiting_user, online
@@ -88,7 +63,6 @@ async def ws_handler(request):
 async def main():
     app = web.Application()
     app.router.add_get("/", index)
-    app.router.add_get("/ice", ice_handler)
     app.router.add_get("/ws", ws_handler)
     app.router.add_static("/static", BASE / "static")
     runner = web.AppRunner(app)

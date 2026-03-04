@@ -268,14 +268,15 @@ let ICE = [{ urls: "stun:stun.l.google.com:19302" }];
 
 async function loadICE() {
   try {
-    const r = await fetch("/ice");
+    const r = await fetch("https://asistan-9te2.onrender.com/ice");
     const d = await r.json();
     ICE = d.ice_servers.map(s => ({
       urls: s.url || s.urls,
       username: s.username,
       credential: s.credential
-    }));
-  } catch {}
+    })).filter(s => s.urls);
+    console.log("ICE servers:", ICE.length);
+  } catch(e) { console.warn("ICE fetch failed:", e); }
 }
 
 let ws = null, pc = null, localStream = null;
