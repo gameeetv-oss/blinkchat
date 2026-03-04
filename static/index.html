@@ -264,13 +264,19 @@ header {
 
 <script>
 const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
-const ICE = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-  { urls: "turn:openrelay.metered.ca:80",    username: "openrelayproject", credential: "openrelayproject" },
-  { urls: "turn:openrelay.metered.ca:443",   username: "openrelayproject", credential: "openrelayproject" },
-  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
-];
+let ICE = [{ urls: "stun:stun.l.google.com:19302" }];
+
+async function loadICE() {
+  try {
+    const r = await fetch("/ice");
+    const d = await r.json();
+    ICE = d.ice_servers.map(s => ({
+      urls: s.url || s.urls,
+      username: s.username,
+      credential: s.credential
+    }));
+  } catch {}
+}
 
 let ws = null, pc = null, localStream = null;
 let active = false, role = null, partnered = false;
@@ -444,6 +450,7 @@ function handlePartnerLeft() {
 startBtn.addEventListener("click", async () => {
   try {
     await getStream();
+    await loadICE();
   } catch {
     setOverlay("Permission denied", "Allow camera & microphone to continue");
     return;
