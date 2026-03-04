@@ -282,6 +282,13 @@ async function loadICE() {
 let ws = null, pc = null, localStream = null;
 let active = false, role = null, partnered = false;
 let pendingCandidates = [], remoteDescSet = false;
+let iceReady = false;
+
+// Sayfa açılır açılmaz ICE yükle
+(async () => {
+  await loadICE();
+  iceReady = true;
+})();
 
 const remoteVideo = document.getElementById("remote-video");
 const localVideo  = document.getElementById("local-video");
@@ -362,7 +369,14 @@ function createPC() {
       msgInput.disabled = false;
       sendBtn.disabled = false;
     }
-    if (s === "failed") handlePartnerLeft();
+    if (s === "failed") {
+      // WebRTC failure - don't auto-reconnect, let user press Next
+      addMsg("Connection failed", "system");
+      closePC();
+      if (ws) { ws.onclose = null; ws.close(); ws = null; }
+      setOverlay("Connection failed", "Press Next to try again");
+      setStatus("Failed");
+    }
   };
 
   pc.oniceconnectionstatechange = () => {
@@ -433,7 +447,9 @@ function connectWS() {
 
   ws.onclose = () => {
     if (!active) return;
+    closePC();
     setStatus("Reconnecting...");
+    setOverlay("Reconnecting...", "Please wait", true);
     setTimeout(connectWS, 1500);
   };
 }
@@ -442,16 +458,15 @@ function handlePartnerLeft() {
   if (!active) return;
   addMsg("Stranger has disconnected", "system");
   closePC();
-  setOverlay("Stranger left", "Finding a new one...", true);
-  setStatus("Finding...");
-  setTimeout(connectWS, 1000);
+  setOverlay("Stranger left", "Press Next to find a new one");
+  setStatus("Disconnected");
 }
 
 // Buttons
 startBtn.addEventListener("click", async () => {
   try {
     await getStream();
-    await loadICE();
+    if (!iceReady) await loadICE();
   } catch {
     setOverlay("Permission denied", "Allow camera & microphone to continue");
     return;
