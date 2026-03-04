@@ -264,19 +264,36 @@ header {
 
 <script>
 const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
-let ICE = [{ urls: "stun:stun.l.google.com:19302" }];
+
+// Ücretsiz yedek TURN sunucuları (Twilio olmasa bile çalışsın)
+let ICE = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+  { urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" },
+];
 
 async function loadICE() {
   try {
     const r = await fetch("https://asistan-9te2.onrender.com/ice");
     const d = await r.json();
-    ICE = d.ice_servers.map(s => ({
+    const servers = d.ice_servers.map(s => ({
       urls: s.url || s.urls,
       username: s.username,
       credential: s.credential
     })).filter(s => s.urls);
-    console.log("ICE servers:", ICE.length);
-  } catch(e) { console.warn("ICE fetch failed:", e); }
+    const hasTurn = servers.some(s => String(s.urls).startsWith("turn:"));
+    if (hasTurn) {
+      // Twilio TURN + yedek TURN birleştir
+      ICE = [{ urls: "stun:stun.l.google.com:19302" }, ...servers, ...ICE.filter(s => String(s.urls).startsWith("turn:openrelay"))];
+      console.log("ICE: Twilio TURN yüklendi", ICE.length, "sunucu");
+    } else {
+      console.warn("ICE: Twilio TURN yok, yedek TURN kullanılıyor");
+    }
+  } catch(e) {
+    console.warn("ICE fetch başarısız, yedek TURN kullanılıyor:", e);
+  }
 }
 
 let ws = null, pc = null, localStream = null;
@@ -370,12 +387,11 @@ function createPC() {
       sendBtn.disabled = false;
     }
     if (s === "failed") {
-      // WebRTC failure - don't auto-reconnect, let user press Next
-      addMsg("Connection failed", "system");
+      addMsg("Connection failed, finding new...", "system");
       closePC();
-      if (ws) { ws.onclose = null; ws.close(); ws = null; }
-      setOverlay("Connection failed", "Press Next to try again");
-      setStatus("Failed");
+      setOverlay("Looking for someone...", "Please wait", true);
+      setStatus("Finding...");
+      connectWS();
     }
   };
 
@@ -458,8 +474,9 @@ function handlePartnerLeft() {
   if (!active) return;
   addMsg("Stranger has disconnected", "system");
   closePC();
-  setOverlay("Stranger left", "Press Next to find a new one");
-  setStatus("Disconnected");
+  setOverlay("Looking for someone...", "Please wait", true);
+  setStatus("Finding...");
+  connectWS();
 }
 
 // Buttons
