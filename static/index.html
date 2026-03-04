@@ -274,6 +274,7 @@ const ICE = [
 
 let ws = null, pc = null, localStream = null;
 let active = false, role = null, partnered = false;
+let pendingCandidates = [], remoteDescSet = false;
 
 const remoteVideo = document.getElementById("remote-video");
 const localVideo  = document.getElementById("local-video");
@@ -324,6 +325,8 @@ function closePC() {
   if (pc) { pc.close(); pc = null; }
   remoteVideo.srcObject = null;
   partnered = false;
+  remoteDescSet = false;
+  pendingCandidates = [];
   msgInput.disabled = true;
   sendBtn.disabled = true;
 }
@@ -343,7 +346,8 @@ function createPC() {
   };
 
   pc.onconnectionstatechange = () => {
-    if (pc?.connectionState === "connected") {
+    const s = pc?.connectionState;
+    if (s === "connected") {
       partnered = true;
       hideOverlay();
       setStatus("Connected");
@@ -351,8 +355,12 @@ function createPC() {
       msgInput.disabled = false;
       sendBtn.disabled = false;
     }
-    if (["disconnected","failed"].includes(pc?.connectionState)) {
-      handlePartnerLeft();
+    if (s === "failed") handlePartnerLeft();
+  };
+
+  pc.oniceconnectionstatechange = () => {
+    if (pc?.iceConnectionState === "failed") {
+      pc.restartIce();
     }
   };
 }
@@ -383,20 +391,30 @@ function connectWS() {
       if (role === "offerer") {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        ws.send(JSON.stringify({ type: "offer", sdp: offer }));
+        ws.send(JSON.stringify({ type: "offer", sdp: pc.localDescription }));
       }
     }
     else if (msg.type === "offer") {
-      await pc.setRemoteDescription(msg.sdp);
+      await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+      remoteDescSet = true;
+      for (const c of pendingCandidates) { try { await pc.addIceCandidate(c); } catch {} }
+      pendingCandidates = [];
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      ws.send(JSON.stringify({ type: "answer", sdp: answer }));
+      ws.send(JSON.stringify({ type: "answer", sdp: pc.localDescription }));
     }
     else if (msg.type === "answer") {
-      await pc.setRemoteDescription(msg.sdp);
+      await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+      remoteDescSet = true;
+      for (const c of pendingCandidates) { try { await pc.addIceCandidate(c); } catch {} }
+      pendingCandidates = [];
     }
     else if (msg.type === "ice") {
-      try { await pc?.addIceCandidate(msg.candidate); } catch {}
+      if (remoteDescSet) {
+        try { await pc?.addIceCandidate(new RTCIceCandidate(msg.candidate)); } catch {}
+      } else {
+        pendingCandidates.push(msg.candidate);
+      }
     }
     else if (msg.type === "chat") {
       addMsg(msg.text, "them");
