@@ -68,11 +68,28 @@ async def ws_handler(request):
     if "," in ip:
         ip = ip.split(",")[0].strip()
 
-    geo = await get_geo(ip)
+    # Cache'te varsa anında al, yoksa arka planda yükle — bağlantıyı geciktirme
+    default_geo = {"flag": "🌍", "location": "Unknown"}
+    geo = geo_cache.get(ip, default_geo)
     user_geo[id(ws)] = geo
 
-    # Kullanıcıya kendi konumunu gönder
-    await ws.send_json({"type": "your_location", "flag": geo["flag"], "location": geo["location"], "online": online})
+    async def fetch_geo_bg():
+        result = await get_geo(ip)
+        user_geo[id(ws)] = result
+        try:
+            if not ws.closed:
+                await ws.send_json({"type": "your_location", "flag": result["flag"], "location": result["location"]})
+        except Exception:
+            pass
+
+    if ip and ip not in geo_cache and ip not in ("127.0.0.1", "::1", "0.0.0.0", ""):
+        asyncio.create_task(fetch_geo_bg())
+    else:
+        # Cache'ten geldi, hemen gönder
+        try:
+            await ws.send_json({"type": "your_location", "flag": geo["flag"], "location": geo["location"]})
+        except Exception:
+            pass
 
     if waiting_user and not waiting_user.closed:
         partner = waiting_user

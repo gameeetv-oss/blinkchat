@@ -622,6 +622,11 @@ async function getStream() {
   if (localStream) return;
   localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   localVideo.srcObject = localStream;
+  // Yeni stream gelince buton durumlarını track'e uygula
+  const aTrack = localStream.getAudioTracks()[0];
+  const vTrack = localStream.getVideoTracks()[0];
+  if (aTrack) aTrack.enabled = !micBtn.classList.contains("off");
+  if (vTrack) vTrack.enabled = !camBtn.classList.contains("off");
 }
 
 function showPartnerLoc(flag, location) {
@@ -799,8 +804,9 @@ stopBtn.addEventListener("click", () => {
   active = false;
   closePC();
   if (ws) { ws.onclose = null; ws.close(); ws = null; }
-  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-  localVideo.srcObject = null;
+  // Stream'i DURDURMUYORUZ — kamera/mikrofon aktif kalıyor.
+  // Bu sayede Start'a tekrar basınca anında devam eder,
+  // mikrofon/kamera durumu da korunur (buton ikonları doğru kalır).
   clearChats();
   startBtn.style.display = "inline-block";
   nextBtn.style.display = "none";
@@ -808,6 +814,11 @@ stopBtn.addEventListener("click", () => {
   closeDrawer();
   setOverlay("Talk to Strangers", "Click Start to find someone");
   setStatus("Ready");
+});
+
+// Sayfa kapanınca stream'i temizle
+window.addEventListener("beforeunload", () => {
+  if (localStream) localStream.getTracks().forEach(t => t.stop());
 });
 
 // ── Send message (desktop) ──
