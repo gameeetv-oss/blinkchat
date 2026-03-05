@@ -62,7 +62,10 @@ header {
   position: absolute;
   bottom: 14px; right: 14px;
   z-index: 10;
-  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
 }
 
 #local-video {
@@ -96,23 +99,20 @@ header {
 .loc-badge.hidden { opacity: 0; }
 
 .my-loc-badge {
-  position: absolute;
-  bottom: 0; right: 0;
-  background: rgba(0,0,0,0.55);
+  /* Flow içinde local-wrap'ın altında — position:absolute değil */
+  background: rgba(0,0,0,0.65);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  color: rgba(255,255,255,0.8);
-  padding: 3px 7px;
-  border-radius: 0 0 8px 0;
-  font-size: 10px;
-  z-index: 12;
+  color: rgba(255,255,255,0.85);
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 11px;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   pointer-events: none;
   white-space: nowrap;
-  overflow: hidden;
-  max-width: 100%;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 /* ── OVERLAY ── */
@@ -389,7 +389,7 @@ header {
   /* Videos: full width */
   .videos { width: 100%; }
 
-  /* Local video wrap: top-right, smaller */
+  /* Local video wrap: sağ-üst köşe, daha küçük */
   #local-wrap {
     bottom: auto;
     top: 10px; right: 10px;
@@ -398,7 +398,11 @@ header {
     width: 90px; height: 68px;
     border-radius: 8px;
   }
-  .my-loc-badge { font-size: 9px; padding: 2px 5px; }
+  .my-loc-badge {
+    font-size: 9px;
+    padding: 2px 7px;
+    border-radius: 8px;
+  }
 
   /* Controls: more compact, touch-friendly */
   .controls {
@@ -447,8 +451,8 @@ header {
       <span id="partner-place-el"></span>
     </div>
     <!-- Local video + own location -->
-    <div style="position:absolute;bottom:14px;right:14px;z-index:10;" id="local-wrap">
-      <video id="local-video" style="position:relative;z-index:1;bottom:auto;right:auto;" autoplay playsinline muted></video>
+    <div id="local-wrap">
+      <video id="local-video" autoplay playsinline muted></video>
       <div class="my-loc-badge" id="my-loc-badge" style="display:none;">
         <span id="my-flag-el">🌍</span>
         <span id="my-place-el"></span>
@@ -528,8 +532,47 @@ let ws = null, pc = null, localStream = null;
 let active = false, role = null, partnered = false;
 let pendingCandidates = [], remoteDescSet = false;
 let iceReady = false;
+let myGeo = null;   // { flag, location } — GPS'ten veya IP'den gelir
 
 (async () => { await loadICE(); iceReady = true; })();
+
+// Ülke kodu → bayrak emoji
+function toFlag(code) {
+  if (!code || code.length !== 2) return "🌍";
+  return String.fromCodePoint(
+    ...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)
+  );
+}
+
+// Tarayıcı GPS + OpenStreetMap reverse geocode
+// IP'den çok daha doğru — 4G dahil
+async function resolveLocationByGPS() {
+  return new Promise(resolve => {
+    if (!navigator.geolocation) { resolve(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        try {
+          const { latitude: lat, longitude: lon } = pos.coords;
+          const r = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`,
+            { headers: { "User-Agent": "blinkchat/1.0" } }
+          );
+          const d = await r.json();
+          const addr = d.address || {};
+          const city = addr.city || addr.town || addr.municipality || addr.county || "";
+          const country = addr.country || "";
+          const code = (addr.country_code || "").toUpperCase();
+          resolve({
+            flag: toFlag(code),
+            location: city ? `${country}, ${city}` : country
+          });
+        } catch { resolve(null); }
+      },
+      () => resolve(null),  // izin verilmedi → IP fallback
+      { timeout: 8000, maximumAge: 300000 }
+    );
+  });
+}
 
 // DOM refs
 const remoteVideo    = document.getElementById("remote-video");
@@ -668,11 +711,18 @@ function createPC() {
       partnered = true;
       hideOverlay();
       setStatus("Connected");
-      // Konum badge'ini göster
-      partnerLocBadge.classList.remove("hidden");
-      const locText = partnerPlaceEl.textContent;
-      addMsg(`Connected — ${partnerFlagEl.textContent} ${locText}`, "system");
+      // Partner konum badge'ini göster (matched'ta set edilmişti)
+      if (partnerPlaceEl.textContent) {
+        partnerLocBadge.classList.remove("hidden");
+        addMsg(`Connected — ${partnerFlagEl.textContent} ${partnerPlaceEl.textContent}`, "system");
+      } else {
+        addMsg("Connected with a stranger", "system");
+      }
       enableChat(true);
+      // GPS konumum hazırsa partnere gönder
+      if (myGeo && ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "my_location", flag: myGeo.flag, location: myGeo.location }));
+      }
     }
     if (s === "failed") {
       addMsg("Connection failed, finding new...", "system");
@@ -749,6 +799,12 @@ function connectWS() {
         pendingCandidates.push(msg.candidate);
       }
     }
+    else if (msg.type === "partner_location") {
+      // Partner GPS konumu güncellendi (IP'den daha doğru)
+      partnerFlagEl.textContent = msg.flag;
+      partnerPlaceEl.textContent = msg.location;
+      partnerLocBadge.classList.remove("hidden");
+    }
     else if (msg.type === "chat") {
       addMsg(msg.text, "them");
     }
@@ -788,6 +844,22 @@ startBtn.addEventListener("click", async () => {
   startBtn.style.display = "none";
   nextBtn.style.display = "inline-block";
   stopBtn.style.display = "inline-block";
+
+  // GPS konumunu arka planda çöz (bağlantıyı bloklamaz)
+  resolveLocationByGPS().then(geo => {
+    if (geo) {
+      myGeo = geo;
+      // Kendi badge'ini GPS sonucuyla güncelle
+      myFlagEl.textContent = geo.flag;
+      myPlaceEl.textContent = geo.location;
+      myLocBadge.style.display = "flex";
+      // Eğer şu an bağlıysa partnere hemen gönder
+      if (partnered && ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "my_location", flag: geo.flag, location: geo.location }));
+      }
+    }
+  });
+
   connectWS();
 });
 

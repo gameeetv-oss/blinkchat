@@ -124,7 +124,16 @@ async def ws_handler(request):
                     continue
                 room = rooms[rid]
                 partner = room[1] if room[0] is ws else room[0]
-                if not partner.closed:
+
+                # GPS konum güncelleme — partner_location olarak ilet
+                if data.get("type") == "my_location":
+                    if not partner.closed:
+                        await partner.send_json({
+                            "type": "partner_location",
+                            "flag": data.get("flag", "🌍"),
+                            "location": data.get("location", "Unknown")
+                        })
+                elif not partner.closed:
                     await partner.send_str(msg.data)
             elif msg.type in (WSMsgType.CLOSE, WSMsgType.ERROR):
                 break
