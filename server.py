@@ -1,5 +1,6 @@
 import asyncio, json, uuid, os, pathlib
 from aiohttp import web, WSMsgType
+import aiohttp
 
 PORT = int(os.getenv("PORT", 8080))
 BASE = pathlib.Path(__file__).parent
@@ -7,10 +8,54 @@ BASE = pathlib.Path(__file__).parent
 waiting_user = None
 rooms = {}
 user_rooms = {}
+user_geo = {}      # id(ws) -> {"flag": "🇹🇷", "location": "Turkey, Istanbul"}
+geo_cache = {}     # ip -> geo dict
 online = 0
+
+
+def country_to_flag(code):
+    if not code or len(code) != 2:
+        return "🌍"
+    return chr(ord(code[0].upper()) + 127397) + chr(ord(code[1].upper()) + 127397)
+
+
+async def get_geo(ip):
+    if not ip or ip in ("127.0.0.1", "::1", "0.0.0.0", ""):
+        return {"flag": "🖥️", "location": "Local"}
+    if ip in geo_cache:
+        return geo_cache[ip]
+    try:
+        async with aiohttp.ClientSession() as s:
+            async with s.get(
+                f"https://ipapi.co/{ip}/json/",
+                timeout=aiohttp.ClientTimeout(total=6),
+                headers={"User-Agent": "blinkchat/1.0"}
+            ) as r:
+                if r.status == 200:
+                    d = await r.json(content_type=None)
+                    code = d.get("country_code", "")
+                    flag = country_to_flag(code)
+                    country = d.get("country_name", "Unknown")
+                    city = d.get("city", "")
+                    region = d.get("region", "")
+                    # İl seviyesi: city + country (ilçe zaten city içinde)
+                    place = f"{country}, {city}" if city else country
+                    result = {"flag": flag, "location": place}
+                else:
+                    result = {"flag": "🌍", "location": "Unknown"}
+    except Exception:
+        result = {"flag": "🌍", "location": "Unknown"}
+    geo_cache[ip] = result
+    return result
+
 
 async def index(request):
     return web.FileResponse(BASE / "static" / "index.html")
+
+
+async def ping(request):
+    return web.Response(text="ok")
+
 
 async def ws_handler(request):
     global waiting_user, online
@@ -18,15 +63,34 @@ async def ws_handler(request):
     await ws.prepare(request)
     online += 1
 
+    # Gerçek IP (Render load balancer arkasında)
+    ip = request.headers.get("X-Forwarded-For", request.remote or "")
+    if "," in ip:
+        ip = ip.split(",")[0].strip()
+
+    geo = await get_geo(ip)
+    user_geo[id(ws)] = geo
+
+    # Kullanıcıya kendi konumunu gönder
+    await ws.send_json({"type": "your_location", "flag": geo["flag"], "location": geo["location"], "online": online})
+
     if waiting_user and not waiting_user.closed:
         partner = waiting_user
         waiting_user = None
+        partner_geo = user_geo.get(id(partner), {"flag": "🌍", "location": "Unknown"})
         rid = str(uuid.uuid4())
         rooms[rid] = [ws, partner]
         user_rooms[id(ws)] = rid
         user_rooms[id(partner)] = rid
-        await ws.send_json({"type": "matched", "role": "answerer", "online": online})
-        await partner.send_json({"type": "matched", "role": "offerer", "online": online})
+        # Her kullanıcıya karşısındakinin konumunu gönder
+        await ws.send_json({
+            "type": "matched", "role": "answerer", "online": online,
+            "partner_flag": partner_geo["flag"], "partner_location": partner_geo["location"]
+        })
+        await partner.send_json({
+            "type": "matched", "role": "offerer", "online": online,
+            "partner_flag": geo["flag"], "partner_location": geo["location"]
+        })
     else:
         waiting_user = ws
         await ws.send_json({"type": "waiting", "online": online})
@@ -49,6 +113,7 @@ async def ws_handler(request):
                 break
     finally:
         online = max(0, online - 1)
+        user_geo.pop(id(ws), None)
         if waiting_user is ws:
             waiting_user = None
         rid = user_rooms.pop(id(ws), None)
@@ -60,8 +125,18 @@ async def ws_handler(request):
                 await partner.send_json({"type": "partner_left"})
     return ws
 
-async def ping(request):
-    return web.Response(text="ok")
+
+async def blinkchat_keepalive():
+    """Render'ın kendi servisini uyutmaması için self-ping."""
+    await asyncio.sleep(60)
+    while True:
+        try:
+            async with aiohttp.ClientSession() as s:
+                await s.get(f"http://0.0.0.0:{PORT}/ping", timeout=aiohttp.ClientTimeout(total=5))
+        except Exception:
+            pass
+        await asyncio.sleep(600)
+
 
 async def main():
     app = web.Application()
@@ -74,6 +149,7 @@ async def main():
     site = web.TCPSite(runner, "0.0.0.0", PORT)
     await site.start()
     print(f"Blinkchat running on port {PORT}")
+    asyncio.create_task(blinkchat_keepalive())
     await asyncio.Event().wait()
 
 if __name__ == "__main__":
