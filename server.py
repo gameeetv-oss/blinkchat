@@ -60,9 +60,13 @@ async def ws_handler(request):
                 await partner.send_json({"type": "partner_left"})
     return ws
 
+async def ping(request):
+    return web.Response(text="ok")
+
 async def main():
     app = web.Application()
     app.router.add_get("/", index)
+    app.router.add_get("/ping", ping)
     app.router.add_get("/ws", ws_handler)
     app.router.add_static("/static", BASE / "static")
     runner = web.AppRunner(app)

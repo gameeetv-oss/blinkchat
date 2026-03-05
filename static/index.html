@@ -2,43 +2,55 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Blinkchat — Talk to Strangers</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+:root {
+  --accent: #7c6af7;
+  --accent-dark: #6a5ae0;
+  --bg: #0d0d12;
+  --bg2: #13131e;
+  --bg3: #10101a;
+  --border: #1e1e2e;
+  --text-muted: #666;
+}
+
 body {
-  background: #0d0d12;
+  background: var(--bg);
   color: #fff;
   font-family: 'Segoe UI', system-ui, sans-serif;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+/* ── HEADER ── */
 header {
-  padding: 12px 20px;
-  background: #13131e;
+  padding: 10px 16px;
+  background: var(--bg2);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #1e1e2e;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  z-index: 20;
 }
 
 .logo { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-.logo .blink { color: #7c6af7; }
-.logo .chat { color: #fff; }
+.logo .blink { color: var(--accent); }
 
-#status-bar { display: flex; gap: 16px; align-items: center; }
-#status { font-size: 12px; color: #666; }
-#online-count { font-size: 12px; color: #7c6af7; background: #1e1a3a; padding: 3px 10px; border-radius: 20px; }
+#status-bar { display: flex; gap: 10px; align-items: center; }
+#status { font-size: 12px; color: var(--text-muted); }
+#online-count { font-size: 12px; color: var(--accent); background: #1e1a3a; padding: 3px 10px; border-radius: 20px; }
 
-.main { display: flex; flex: 1; overflow: hidden; }
+/* ── MAIN AREA ── */
+.main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 
-/* Videos */
-.videos { flex: 1; position: relative; background: #000; }
+/* ── VIDEOS ── */
+.videos { flex: 1; position: relative; background: #000; min-width: 0; }
 
 #remote-video {
   width: 100%; height: 100%;
@@ -48,48 +60,48 @@ header {
 
 #local-video {
   position: absolute;
-  bottom: 16px; right: 16px;
-  width: 160px; height: 120px;
+  bottom: 14px; right: 14px;
+  width: 150px; height: 112px;
   object-fit: cover;
   border-radius: 10px;
-  border: 2px solid #7c6af7;
+  border: 2px solid var(--accent);
   background: #1a1a24;
   z-index: 10;
+  transition: all 0.2s;
 }
 
+/* ── OVERLAY ── */
 .overlay {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(13,13,18,0.92);
+  background: rgba(13,13,18,0.93);
   flex-direction: column;
   gap: 12px;
   z-index: 5;
-  transition: opacity 0.3s;
 }
 .overlay.hidden { display: none; }
-
-.overlay h2 { font-size: 26px; font-weight: 700; }
-.overlay p { color: #666; font-size: 14px; }
+.overlay h2 { font-size: 26px; font-weight: 700; text-align: center; padding: 0 20px; }
+.overlay p { color: var(--text-muted); font-size: 14px; text-align: center; padding: 0 20px; }
 
 .spinner {
   width: 42px; height: 42px;
   border: 3px solid #1e1e2e;
-  border-top-color: #7c6af7;
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* Sidebar chat */
+/* ── DESKTOP SIDEBAR ── */
 .sidebar {
   width: 280px;
   display: flex;
   flex-direction: column;
-  background: #10101a;
-  border-left: 1px solid #1e1e2e;
+  background: var(--bg3);
+  border-left: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -99,7 +111,8 @@ header {
   color: #444;
   text-transform: uppercase;
   letter-spacing: 1px;
-  border-bottom: 1px solid #1e1e2e;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 #chat {
@@ -109,6 +122,7 @@ header {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-height: 0;
 }
 #chat::-webkit-scrollbar { width: 3px; }
 #chat::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
@@ -122,14 +136,15 @@ header {
   word-break: break-word;
 }
 .msg.them { background: #1e1e2e; align-self: flex-start; border-radius: 4px 14px 14px 14px; }
-.msg.me { background: #7c6af7; align-self: flex-end; border-radius: 14px 4px 14px 14px; }
+.msg.me { background: var(--accent); align-self: flex-end; border-radius: 14px 4px 14px 14px; }
 .msg.system { background: transparent; color: #444; font-size: 11px; align-self: center; text-align: center; padding: 2px 0; }
 
-.chat-input {
+.chat-input-row {
   padding: 10px;
-  border-top: 1px solid #1e1e2e;
+  border-top: 1px solid var(--border);
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 #msg-input {
@@ -143,11 +158,11 @@ header {
   outline: none;
   transition: border-color 0.2s;
 }
-#msg-input:focus { border-color: #7c6af7; }
+#msg-input:focus { border-color: var(--accent); }
 #msg-input::placeholder { color: #444; }
 
 #send-btn {
-  background: #7c6af7;
+  background: var(--accent);
   border: none;
   color: #fff;
   padding: 9px 13px;
@@ -155,19 +170,20 @@ header {
   cursor: pointer;
   font-size: 15px;
   transition: background 0.2s;
+  flex-shrink: 0;
 }
-#send-btn:hover:not(:disabled) { background: #6a5ae0; }
+#send-btn:hover:not(:disabled) { background: var(--accent-dark); }
 #send-btn:disabled { background: #2a2a3a; cursor: not-allowed; }
 
-/* Controls */
+/* ── CONTROLS BAR ── */
 .controls {
-  padding: 12px 20px;
-  background: #13131e;
+  padding: 10px 20px;
+  background: var(--bg2);
   display: flex;
   gap: 10px;
   justify-content: center;
   align-items: center;
-  border-top: 1px solid #1e1e2e;
+  border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -175,8 +191,7 @@ header {
   background: #1e1e2e;
   border: none;
   color: #fff;
-  width: 42px;
-  height: 42px;
+  width: 42px; height: 42px;
   border-radius: 50%;
   font-size: 18px;
   cursor: pointer;
@@ -184,28 +199,28 @@ header {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 .icon-btn:hover { background: #2a2a3a; }
 .icon-btn.off { background: #c0392b; }
 
 #start-btn {
-  background: #7c6af7;
+  background: var(--accent);
   border: none;
   color: #fff;
-  padding: 11px 32px;
+  padding: 11px 28px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s;
-  letter-spacing: 0.3px;
 }
-#start-btn:hover { background: #6a5ae0; }
+#start-btn:hover { background: var(--accent-dark); }
 
 #next-btn, #stop-btn {
   border: none;
   color: #fff;
-  padding: 11px 22px;
+  padding: 11px 20px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -217,9 +232,151 @@ header {
 #stop-btn { background: #c0392b; }
 #stop-btn:hover { background: #a93226; }
 
-@media (max-width: 600px) {
-  .sidebar { width: 220px; }
-  #local-video { width: 110px; height: 82px; }
+/* chat toggle — only on mobile */
+#chat-toggle-btn { display: none; }
+
+/* ── MOBILE CHAT DRAWER ── */
+.chat-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 49;
+}
+.chat-backdrop.open { display: block; }
+
+.mobile-drawer {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 55vh;
+  background: var(--bg3);
+  border-radius: 18px 18px 0 0;
+  border-top: 1px solid var(--border);
+  z-index: 50;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.mobile-drawer.open {
+  transform: translateY(0);
+}
+
+.drawer-handle {
+  width: 36px; height: 4px;
+  background: #333;
+  border-radius: 2px;
+  margin: 10px auto 8px;
+  flex-shrink: 0;
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px 10px;
+  flex-shrink: 0;
+}
+.drawer-header span { font-size: 13px; color: #444; text-transform: uppercase; letter-spacing: 1px; }
+.drawer-close {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 20px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+#chat-mobile {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+#chat-mobile::-webkit-scrollbar { width: 2px; }
+#chat-mobile::-webkit-scrollbar-thumb { background: #2a2a3a; }
+
+.chat-input-row-mobile {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+
+#msg-input-mobile {
+  flex: 1;
+  background: #1a1a24;
+  border: 1px solid #2a2a3a;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+}
+#msg-input-mobile:focus { border-color: var(--accent); }
+#msg-input-mobile::placeholder { color: #444; }
+
+#send-btn-mobile {
+  background: var(--accent);
+  border: none;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* ── MOBILE OVERRIDES (<= 767px) ── */
+@media (max-width: 767px) {
+  header { padding: 10px 14px; }
+  .logo { font-size: 18px; }
+
+  /* Hide desktop sidebar */
+  .sidebar { display: none !important; }
+
+  /* Videos: full width */
+  .videos { width: 100%; }
+
+  /* Local video: top-right, smaller */
+  #local-video {
+    bottom: auto;
+    top: 10px; right: 10px;
+    width: 90px; height: 68px;
+    border-radius: 8px;
+  }
+
+  /* Controls: more compact, touch-friendly */
+  .controls {
+    padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  .icon-btn {
+    width: 46px; height: 46px;
+    font-size: 20px;
+  }
+
+  #start-btn  { padding: 12px 20px; font-size: 15px; }
+  #next-btn   { padding: 12px 16px; font-size: 14px; }
+  #stop-btn   { padding: 12px 16px; font-size: 14px; }
+
+  /* Chat toggle button: visible on mobile */
+  #chat-toggle-btn {
+    display: flex;
+    position: relative;
+  }
+
+  /* Mobile drawer: flex when active */
+  .mobile-drawer { display: flex; }
 }
 </style>
 </head>
@@ -244,10 +401,11 @@ header {
     </div>
   </div>
 
+  <!-- Desktop sidebar -->
   <div class="sidebar">
     <div class="sidebar-header">Chat</div>
     <div id="chat"></div>
-    <div class="chat-input">
+    <div class="chat-input-row">
       <input type="text" id="msg-input" placeholder="Type a message..." disabled maxlength="500" autocomplete="off">
       <button id="send-btn" disabled>➤</button>
     </div>
@@ -260,12 +418,30 @@ header {
   <button id="start-btn">▶ Start</button>
   <button id="next-btn">⏭ Next</button>
   <button id="stop-btn">■ Stop</button>
+  <!-- Mobile only: chat toggle -->
+  <button class="icon-btn" id="chat-toggle-btn" title="Chat">💬</button>
+</div>
+
+<!-- Mobile chat drawer -->
+<div class="chat-backdrop" id="chat-backdrop"></div>
+<div class="mobile-drawer" id="mobile-drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-header">
+    <span>Chat</span>
+    <button class="drawer-close" id="drawer-close">✕</button>
+  </div>
+  <div id="chat-mobile"></div>
+  <div class="chat-input-row-mobile">
+    <input type="text" id="msg-input-mobile" placeholder="Type a message..." disabled maxlength="500" autocomplete="off">
+    <button id="send-btn-mobile" disabled>➤</button>
+  </div>
 </div>
 
 <script>
 const WS_URL = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+const isMobile = () => window.innerWidth <= 767;
 
-// Ücretsiz yedek TURN sunucuları (Twilio olmasa bile çalışsın)
+// ICE servers
 let ICE = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
@@ -279,21 +455,13 @@ async function loadICE() {
     const r = await fetch("https://asistan-9te2.onrender.com/ice");
     const d = await r.json();
     const servers = d.ice_servers.map(s => ({
-      urls: s.url || s.urls,
-      username: s.username,
-      credential: s.credential
+      urls: s.url || s.urls, username: s.username, credential: s.credential
     })).filter(s => s.urls);
     const hasTurn = servers.some(s => String(s.urls).startsWith("turn:"));
     if (hasTurn) {
-      // Twilio TURN + yedek TURN birleştir
       ICE = [{ urls: "stun:stun.l.google.com:19302" }, ...servers, ...ICE.filter(s => String(s.urls).startsWith("turn:openrelay"))];
-      console.log("ICE: Twilio TURN yüklendi", ICE.length, "sunucu");
-    } else {
-      console.warn("ICE: Twilio TURN yok, yedek TURN kullanılıyor");
     }
-  } catch(e) {
-    console.warn("ICE fetch başarısız, yedek TURN kullanılıyor:", e);
-  }
+  } catch(e) {}
 }
 
 let ws = null, pc = null, localStream = null;
@@ -301,17 +469,17 @@ let active = false, role = null, partnered = false;
 let pendingCandidates = [], remoteDescSet = false;
 let iceReady = false;
 
-// Sayfa açılır açılmaz ICE yükle
-(async () => {
-  await loadICE();
-  iceReady = true;
-})();
+(async () => { await loadICE(); iceReady = true; })();
 
+// DOM refs
 const remoteVideo = document.getElementById("remote-video");
 const localVideo  = document.getElementById("local-video");
 const chatEl      = document.getElementById("chat");
+const chatMobile  = document.getElementById("chat-mobile");
 const msgInput    = document.getElementById("msg-input");
 const sendBtn     = document.getElementById("send-btn");
+const msgInputM   = document.getElementById("msg-input-mobile");
+const sendBtnM    = document.getElementById("send-btn-mobile");
 const startBtn    = document.getElementById("start-btn");
 const nextBtn     = document.getElementById("next-btn");
 const stopBtn     = document.getElementById("stop-btn");
@@ -323,7 +491,26 @@ const statusEl    = document.getElementById("status");
 const onlineEl    = document.getElementById("online-count");
 const micBtn      = document.getElementById("mic-btn");
 const camBtn      = document.getElementById("cam-btn");
+const chatToggle  = document.getElementById("chat-toggle-btn");
+const drawer      = document.getElementById("mobile-drawer");
+const backdrop    = document.getElementById("chat-backdrop");
+const drawerClose = document.getElementById("drawer-close");
 
+// Mobile drawer
+function openDrawer() {
+  drawer.classList.add("open");
+  backdrop.classList.add("open");
+  msgInputM.focus();
+}
+function closeDrawer() {
+  drawer.classList.remove("open");
+  backdrop.classList.remove("open");
+}
+chatToggle.addEventListener("click", openDrawer);
+drawerClose.addEventListener("click", closeDrawer);
+backdrop.addEventListener("click", closeDrawer);
+
+// Overlay helpers
 function setOverlay(title, sub, spin = false) {
   overlay.classList.remove("hidden");
   ovTitle.textContent = title;
@@ -332,19 +519,38 @@ function setOverlay(title, sub, spin = false) {
 }
 function hideOverlay() { overlay.classList.add("hidden"); }
 
+// Add message to both desktop and mobile chats
 function addMsg(text, type = "system") {
-  const d = document.createElement("div");
-  d.className = "msg " + type;
-  d.textContent = text;
-  chatEl.appendChild(d);
-  chatEl.scrollTop = chatEl.scrollHeight;
+  [chatEl, chatMobile].forEach(el => {
+    const d = document.createElement("div");
+    d.className = "msg " + type;
+    d.textContent = text;
+    el.appendChild(d);
+    el.scrollTop = el.scrollHeight;
+  });
+  // Badge on chat toggle if drawer is closed and new message
+  if (type === "them" && !drawer.classList.contains("open")) {
+    chatToggle.textContent = "🔔";
+    chatToggle.style.background = "#c0392b";
+  }
+}
+
+function clearChats() {
+  chatEl.innerHTML = "";
+  chatMobile.innerHTML = "";
+  chatToggle.textContent = "💬";
+  chatToggle.style.background = "";
+}
+
+function enableChat(on) {
+  msgInput.disabled = !on;
+  sendBtn.disabled = !on;
+  msgInputM.disabled = !on;
+  sendBtnM.disabled = !on;
 }
 
 function setStatus(t) { statusEl.textContent = t; }
-
-function setOnline(n) {
-  if (n !== undefined) onlineEl.textContent = n + " online";
-}
+function setOnline(n) { if (n !== undefined) onlineEl.textContent = n + " online"; }
 
 async function getStream() {
   if (localStream) return;
@@ -358,8 +564,7 @@ function closePC() {
   partnered = false;
   remoteDescSet = false;
   pendingCandidates = [];
-  msgInput.disabled = true;
-  sendBtn.disabled = true;
+  enableChat(false);
 }
 
 function createPC() {
@@ -383,8 +588,7 @@ function createPC() {
       hideOverlay();
       setStatus("Connected");
       addMsg("You are now chatting with a stranger", "system");
-      msgInput.disabled = false;
-      sendBtn.disabled = false;
+      enableChat(true);
     }
     if (s === "failed") {
       addMsg("Connection failed, finding new...", "system");
@@ -396,9 +600,7 @@ function createPC() {
   };
 
   pc.oniceconnectionstatechange = () => {
-    if (pc?.iceConnectionState === "failed") {
-      pc.restartIce();
-    }
+    if (pc?.iceConnectionState === "failed") pc.restartIce();
   };
 }
 
@@ -420,11 +622,10 @@ function connectWS() {
     }
     else if (msg.type === "matched") {
       role = msg.role;
-      chatEl.innerHTML = "";
+      clearChats();
       createPC();
       setOverlay("Connecting...", "", true);
       setStatus("Connecting...");
-
       if (role === "offerer") {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -479,7 +680,7 @@ function handlePartnerLeft() {
   connectWS();
 }
 
-// Buttons
+// ── Button events ──
 startBtn.addEventListener("click", async () => {
   try {
     await getStream();
@@ -498,7 +699,7 @@ startBtn.addEventListener("click", async () => {
 nextBtn.addEventListener("click", () => {
   if (!active) return;
   closePC();
-  chatEl.innerHTML = "";
+  clearChats();
   addMsg("Looking for someone new...", "system");
   setOverlay("Looking for someone...", "Please wait", true);
   connectWS();
@@ -510,15 +711,16 @@ stopBtn.addEventListener("click", () => {
   if (ws) { ws.onclose = null; ws.close(); ws = null; }
   if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
   localVideo.srcObject = null;
-  chatEl.innerHTML = "";
+  clearChats();
   startBtn.style.display = "inline-block";
   nextBtn.style.display = "none";
   stopBtn.style.display = "none";
+  closeDrawer();
   setOverlay("Talk to Strangers", "Click Start to find someone");
   setStatus("Ready");
 });
 
-// Send message
+// ── Send message (desktop) ──
 function sendMsg() {
   const text = msgInput.value.trim();
   if (!text || ws?.readyState !== WebSocket.OPEN || !partnered) return;
@@ -529,7 +731,18 @@ function sendMsg() {
 sendBtn.addEventListener("click", sendMsg);
 msgInput.addEventListener("keydown", e => { if (e.key === "Enter") sendMsg(); });
 
-// Mic toggle
+// ── Send message (mobile) ──
+function sendMsgMobile() {
+  const text = msgInputM.value.trim();
+  if (!text || ws?.readyState !== WebSocket.OPEN || !partnered) return;
+  ws.send(JSON.stringify({ type: "chat", text }));
+  addMsg(text, "me");
+  msgInputM.value = "";
+}
+sendBtnM.addEventListener("click", sendMsgMobile);
+msgInputM.addEventListener("keydown", e => { if (e.key === "Enter") sendMsgMobile(); });
+
+// ── Mic toggle ──
 micBtn.addEventListener("click", () => {
   const track = localStream?.getAudioTracks()[0];
   if (!track) return;
@@ -538,7 +751,7 @@ micBtn.addEventListener("click", () => {
   micBtn.classList.toggle("off", !track.enabled);
 });
 
-// Camera toggle
+// ── Camera toggle ──
 camBtn.addEventListener("click", () => {
   const track = localStream?.getVideoTracks()[0];
   if (!track) return;
