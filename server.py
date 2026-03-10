@@ -53,8 +53,18 @@ async def index(request):
     return web.FileResponse(BASE / "static" / "index.html")
 
 async def sitemap(request):
-    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://blinkchat-k69c.onrender.com/</loc>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>'
-    return web.Response(text=xml, content_type="application/xml")
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        '  <url>\n'
+        '    <loc>https://blinkchat-k69c.onrender.com/</loc>\n'
+        '    <lastmod>2026-03-11</lastmod>\n'
+        '    <changefreq>weekly</changefreq>\n'
+        '    <priority>1.0</priority>\n'
+        '  </url>\n'
+        '</urlset>'
+    )
+    return web.Response(text=xml, content_type="application/xml", headers={"Cache-Control": "no-cache"})
 
 
 async def ping(request):
@@ -162,10 +172,10 @@ async def blinkchat_keepalive():
     while True:
         try:
             async with aiohttp.ClientSession() as s:
-                await s.get(f"http://0.0.0.0:{PORT}/ping", timeout=aiohttp.ClientTimeout(total=5))
+                await s.get("https://blinkchat-k69c.onrender.com/ping", timeout=aiohttp.ClientTimeout(total=10))
         except Exception:
             pass
-        await asyncio.sleep(600)
+        await asyncio.sleep(480)
 
 
 async def main():
