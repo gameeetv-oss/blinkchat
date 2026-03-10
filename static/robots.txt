@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://blinkchat-k69c.onrender.com/sitemap.xml
