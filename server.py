@@ -52,6 +52,10 @@ async def get_geo(ip):
 async def index(request):
     return web.FileResponse(BASE / "static" / "index.html")
 
+async def sitemap(request):
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>https://blinkchat-k69c.onrender.com/</loc>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n</urlset>'
+    return web.Response(text=xml, content_type="application/xml")
+
 
 async def ping(request):
     return web.Response(text="ok")
@@ -170,7 +174,7 @@ async def main():
     app.router.add_get("/ping", ping)
     app.router.add_get("/ws", ws_handler)
     app.router.add_get("/googlee2b500dcde5fee75.html", lambda r: web.FileResponse(BASE / "static" / "googlee2b500dcde5fee75.html"))
-    app.router.add_get("/sitemap.xml", lambda r: web.FileResponse(BASE / "static" / "sitemap.xml"))
+    app.router.add_get("/sitemap.xml", sitemap)
     app.router.add_get("/robots.txt", lambda r: web.FileResponse(BASE / "static" / "robots.txt"))
     app.router.add_static("/icons", BASE / "static" / "icons")
     app.router.add_static("/static", BASE / "static")
