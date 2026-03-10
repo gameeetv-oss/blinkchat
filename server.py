@@ -64,7 +64,7 @@ async def sitemap(request):
         '  </url>\n'
         '</urlset>'
     )
-    return web.Response(text=xml, content_type="application/xml", headers={"Cache-Control": "no-cache"})
+    return web.Response(text=xml, content_type="text/xml", headers={"Cache-Control": "no-cache"})
 
 
 async def ping(request):
