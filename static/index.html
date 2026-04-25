@@ -371,6 +371,8 @@ header {
 #stop-btn { background: #c0392b; }
 #stop-btn:hover { background: #a93226; }
 #chat-toggle-btn { display: none; }
+#cc-btn { font-size: 11px; font-weight: 800; letter-spacing: -0.5px; }
+#cc-btn.active { background: var(--accent); }
 
 /* ── MOBILE DRAWER ── */
 .chat-backdrop {
@@ -559,6 +561,7 @@ header {
   <button id="start-btn">▶ Start</button>
   <button id="next-btn">⏭ Next</button>
   <button id="stop-btn">■ Stop</button>
+  <button class="icon-btn" id="cc-btn" title="Live Translation (CC)">CC</button>
   <button class="icon-btn" id="chat-toggle-btn" title="Chat">💬</button>
 </div>
 
@@ -621,9 +624,10 @@ let blindRevealed = false;
 let timerInterval = null, timerRemaining = 0, timerMax = TIMER_SECS;
 let myExtended = false;
 
-// Speech recognition
+// Speech recognition & subtitle toggle
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null, subtitleTimer = null;
+let subEnabled = false;
 
 (async () => { await loadICE(); iceReady = true; })();
 
@@ -739,7 +743,7 @@ function updateTimerUI() {
 
 // ── Speech Recognition / Subtitles ──
 function startRecognition() {
-  if (!SR || !partnered) return;
+  if (!SR || !partnered || !subEnabled) return;
   stopRecognition();
   recognition = new SR();
   recognition.continuous = true;
@@ -800,6 +804,7 @@ const onlineEl        = document.getElementById('online-count');
 const micBtn          = document.getElementById('mic-btn');
 const camBtn          = document.getElementById('cam-btn');
 const chatToggle      = document.getElementById('chat-toggle-btn');
+const ccBtn           = document.getElementById('cc-btn');
 const drawer          = document.getElementById('mobile-drawer');
 const backdrop        = document.getElementById('chat-backdrop');
 const drawerClose     = document.getElementById('drawer-close');
@@ -832,6 +837,24 @@ document.getElementById('mode-selector').querySelectorAll('.mode-btn').forEach(b
     btn.classList.add('selected');
     chatMode = btn.dataset.mode;
   });
+});
+
+// ── CC / Live Translation toggle ──
+ccBtn.addEventListener('click', () => {
+  if (!SR) {
+    addMsg('Live translation not supported on this browser', 'system');
+    return;
+  }
+  subEnabled = !subEnabled;
+  ccBtn.classList.toggle('active', subEnabled);
+  if (subEnabled) {
+    if (partnered) startRecognition();
+    addMsg('🌐 Live translation ON — subtitles will appear on both sides', 'system');
+  } else {
+    stopRecognition();
+    subtitleWrap.style.display = 'none';
+    addMsg('Live translation OFF', 'system');
+  }
 });
 
 // ── Reveal button ──
@@ -956,7 +979,7 @@ function createPC() {
       if (myGeo && ws?.readyState === WebSocket.OPEN)
         ws.send(JSON.stringify({ type: 'my_location', flag: myGeo.flag, location: myGeo.location }));
       startTimer();
-      startRecognition();
+      if (subEnabled) startRecognition();
       if (chatMode === 'blind') {
         applyBlind(true);
         addMsg('👁️ Blind Mode — video hidden. Click Reveal when ready!', 'system');
@@ -1035,6 +1058,7 @@ function connectWS() {
     }
     else if (msg.type === 'chat') { addMsg(msg.text, 'them'); }
     else if (msg.type === 'subtitle') {
+      if (!subEnabled) return;
       showSubtitle(msg.text);
       if (msg.isFinal) {
         translateText(msg.text, userLang).then(t => {
