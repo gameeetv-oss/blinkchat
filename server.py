@@ -5,11 +5,11 @@ import aiohttp
 PORT = int(os.getenv("PORT", 8080))
 BASE = pathlib.Path(__file__).parent
 
-waiting_user = None
+waiting_users = []  # [ws, interests, geo]
 rooms = {}
 user_rooms = {}
-user_geo = {}      # id(ws) -> {"flag": "🇹🇷", "location": "Turkey, Istanbul"}
-geo_cache = {}     # ip -> geo dict
+user_geo = {}
+geo_cache = {}
 online = 0
 
 
@@ -37,8 +37,6 @@ async def get_geo(ip):
                     flag = country_to_flag(code)
                     country = d.get("country_name", "Unknown")
                     city = d.get("city", "")
-                    region = d.get("region", "")
-                    # İl seviyesi: city + country (ilçe zaten city içinde)
                     place = f"{country}, {city}" if city else country
                     result = {"flag": flag, "location": place}
                 else:
@@ -49,8 +47,24 @@ async def get_geo(ip):
     return result
 
 
+def find_best_match(my_interests):
+    global waiting_users
+    waiting_users = [u for u in waiting_users if not u[0].closed]
+    if not waiting_users:
+        return -1
+    my_set = set(my_interests)
+    best_idx, best_score = 0, -1
+    for i, (w, interests, geo) in enumerate(waiting_users):
+        score = len(my_set & set(interests)) if my_set and interests else 0
+        if score > best_score:
+            best_score = score
+            best_idx = i
+    return best_idx
+
+
 async def index(request):
     return web.FileResponse(BASE / "static" / "index.html")
+
 
 async def sitemap(request):
     xml = (
@@ -58,7 +72,7 @@ async def sitemap(request):
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         '  <url>\n'
         '    <loc>https://blinkchat-k69c.onrender.com/</loc>\n'
-        '    <lastmod>2026-03-11</lastmod>\n'
+        '    <lastmod>2026-04-25</lastmod>\n'
         '    <changefreq>weekly</changefreq>\n'
         '    <priority>1.0</priority>\n'
         '  </url>\n'
@@ -72,17 +86,18 @@ async def ping(request):
 
 
 async def ws_handler(request):
-    global waiting_user, online
+    global waiting_users, online
     ws = web.WebSocketResponse(heartbeat=30)
     await ws.prepare(request)
     online += 1
 
-    # Gerçek IP (Render load balancer arkasında)
+    interests_raw = request.rel_url.query.get("interests", "")
+    my_interests = [i.strip() for i in interests_raw.split(",") if i.strip()] if interests_raw else []
+
     ip = request.headers.get("X-Forwarded-For", request.remote or "")
     if "," in ip:
         ip = ip.split(",")[0].strip()
 
-    # Cache'te varsa anında al, yoksa arka planda yükle — bağlantıyı geciktirme
     default_geo = {"flag": "🌍", "location": "Unknown"}
     geo = geo_cache.get(ip, default_geo)
     user_geo[id(ws)] = geo
@@ -99,31 +114,32 @@ async def ws_handler(request):
     if ip and ip not in geo_cache and ip not in ("127.0.0.1", "::1", "0.0.0.0", ""):
         asyncio.create_task(fetch_geo_bg())
     else:
-        # Cache'ten geldi, hemen gönder
         try:
             await ws.send_json({"type": "your_location", "flag": geo["flag"], "location": geo["location"]})
         except Exception:
             pass
 
-    if waiting_user and not waiting_user.closed:
-        partner = waiting_user
-        waiting_user = None
-        partner_geo = user_geo.get(id(partner), {"flag": "🌍", "location": "Unknown"})
+    idx = find_best_match(my_interests)
+    if idx >= 0:
+        partner_ws, partner_interests, _ = waiting_users.pop(idx)
+        partner_geo = user_geo.get(id(partner_ws), {"flag": "🌍", "location": "Unknown"})
         rid = str(uuid.uuid4())
-        rooms[rid] = [ws, partner]
+        rooms[rid] = [ws, partner_ws]
         user_rooms[id(ws)] = rid
-        user_rooms[id(partner)] = rid
-        # Her kullanıcıya karşısındakinin konumunu gönder
+        user_rooms[id(partner_ws)] = rid
+        common = list(set(my_interests) & set(partner_interests))
         await ws.send_json({
             "type": "matched", "role": "answerer", "online": online,
-            "partner_flag": partner_geo["flag"], "partner_location": partner_geo["location"]
+            "partner_flag": partner_geo["flag"], "partner_location": partner_geo["location"],
+            "common_interests": common
         })
-        await partner.send_json({
+        await partner_ws.send_json({
             "type": "matched", "role": "offerer", "online": online,
-            "partner_flag": geo["flag"], "partner_location": geo["location"]
+            "partner_flag": geo["flag"], "partner_location": geo["location"],
+            "common_interests": common
         })
     else:
-        waiting_user = ws
+        waiting_users.append([ws, my_interests, geo])
         await ws.send_json({"type": "waiting", "online": online})
 
     try:
@@ -138,8 +154,6 @@ async def ws_handler(request):
                     continue
                 room = rooms[rid]
                 partner = room[1] if room[0] is ws else room[0]
-
-                # GPS konum güncelleme — partner_location olarak ilet
                 if data.get("type") == "my_location":
                     if not partner.closed:
                         await partner.send_json({
@@ -154,8 +168,7 @@ async def ws_handler(request):
     finally:
         online = max(0, online - 1)
         user_geo.pop(id(ws), None)
-        if waiting_user is ws:
-            waiting_user = None
+        waiting_users[:] = [u for u in waiting_users if u[0] is not ws]
         rid = user_rooms.pop(id(ws), None)
         if rid and rid in rooms:
             room = rooms.pop(rid)
@@ -167,7 +180,6 @@ async def ws_handler(request):
 
 
 async def blinkchat_keepalive():
-    """Render'ın kendi servisini uyutmaması için self-ping."""
     await asyncio.sleep(60)
     while True:
         try:
