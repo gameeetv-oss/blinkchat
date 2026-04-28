@@ -32,6 +32,8 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"BlinkChat","url":"https://blinkchat-k69c.onrender.com","description":"Yabancılarla rastgele görüntülü sohbet","applicationCategory":"CommunicationApplication","operatingSystem":"Web, Android, iOS","offers":{"@type":"Offer","price":"0","priceCurrency":"TRY"},"inLanguage":"tr"}
 </script>
+<!-- Google AdSense -->
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root {
@@ -70,6 +72,18 @@ header {
 #status-bar { display: flex; gap: 10px; align-items: center; }
 #status { font-size: 12px; color: var(--text-muted); }
 #online-count { font-size: 12px; color: var(--accent); background: #1e1a3a; padding: 3px 10px; border-radius: 20px; }
+
+/* ── ADSENSE BANNER ── */
+.ad-banner {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
 
 /* ── MAIN ── */
 .main { display: flex; flex: 1; overflow: hidden; min-height: 0; }
@@ -235,6 +249,27 @@ header {
   border: 1px solid rgba(255,255,255,0.15);
 }
 
+/* ── FLOATING GIFTS ── */
+#gift-stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+  overflow: hidden;
+}
+.floating-gift {
+  position: absolute;
+  font-size: 36px;
+  animation: floatUp 2.5s ease-out forwards;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+}
+@keyframes floatUp {
+  0%   { transform: translateY(0) scale(1);   opacity: 1; }
+  60%  { transform: translateY(-160px) scale(1.15); opacity: 1; }
+  100% { transform: translateY(-260px) scale(0.8); opacity: 0; }
+}
+
 /* ── OVERLAY ── */
 .overlay {
   position: absolute; inset: 0;
@@ -258,7 +293,7 @@ header {
 #interest-panel {
   display: flex; flex-direction: column;
   align-items: center; gap: 10px;
-  padding: 0 20px; width: 100%; max-width: 440px;
+  padding: 0 20px; width: 100%; max-width: 480px;
 }
 #interest-panel .hint {
   font-size: 11px; color: #555;
@@ -285,6 +320,70 @@ header {
 }
 .mode-btn.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
 
+/* ── GENDER FILTER ── */
+#gender-panel {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 8px;
+  width: 100%; max-width: 480px;
+}
+.gender-row {
+  display: flex; gap: 8px; align-items: center; justify-content: center;
+  flex-wrap: wrap;
+}
+.gender-label {
+  font-size: 11px; color: #555;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  width: 100%; text-align: center;
+}
+.gender-btn {
+  background: #1a1a28; border: 1px solid #2a2a3a;
+  color: #aaa; padding: 7px 16px; border-radius: 20px;
+  font-size: 13px; cursor: pointer;
+  transition: all 0.18s; user-select: none;
+  display: flex; align-items: center; gap: 5px;
+}
+.gender-btn.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+.premium-badge {
+  font-size: 9px; background: #f39c12; color: #000;
+  padding: 1px 5px; border-radius: 4px; font-weight: 700;
+}
+
+/* ── PREMIUM MODAL ── */
+#premium-modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8); z-index: 100;
+  align-items: center; justify-content: center;
+}
+#premium-modal.open { display: flex; }
+.premium-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 18px; padding: 28px 24px;
+  max-width: 320px; width: 90%; text-align: center;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.premium-box h3 { font-size: 22px; font-weight: 800; }
+.premium-box h3 span { color: #f39c12; }
+.premium-box p { color: #888; font-size: 13px; line-height: 1.6; }
+.premium-features { list-style: none; text-align: left; display: flex; flex-direction: column; gap: 8px; }
+.premium-features li { font-size: 13px; color: #ccc; display: flex; align-items: center; gap: 8px; }
+.premium-features li::before { content: "✓"; color: #27ae60; font-weight: 700; }
+.premium-price {
+  font-size: 28px; font-weight: 800; color: #f39c12;
+}
+.premium-price span { font-size: 14px; color: #888; font-weight: 400; }
+.btn-premium-buy {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+  border: none; color: #fff; padding: 14px;
+  border-radius: 12px; font-size: 15px; font-weight: 700;
+  cursor: pointer; width: 100%;
+  transition: opacity 0.2s;
+}
+.btn-premium-buy:hover { opacity: 0.9; }
+.btn-premium-close {
+  background: none; border: none; color: #555;
+  font-size: 13px; cursor: pointer;
+}
+
 /* ── DESKTOP SIDEBAR ── */
 .sidebar {
   width: 280px; display: flex; flex-direction: column;
@@ -309,6 +408,7 @@ header {
 .msg.them { background: #1e1e2e; align-self: flex-start; border-radius: 4px 14px 14px 14px; }
 .msg.me { background: var(--accent); align-self: flex-end; border-radius: 14px 4px 14px 14px; }
 .msg.system { background: transparent; color: #444; font-size: 11px; align-self: center; text-align: center; padding: 2px 0; }
+.msg.gift-msg { background: transparent; align-self: center; font-size: 28px; padding: 4px 0; }
 .msg-translate-btn {
   font-size: 10px; color: rgba(255,255,255,0.4);
   cursor: pointer; display: block; margin-top: 4px;
@@ -323,7 +423,10 @@ header {
 }
 .chat-input-row {
   padding: 10px; border-top: 1px solid var(--border);
-  display: flex; gap: 8px; flex-shrink: 0;
+  display: flex; gap: 8px; flex-shrink: 0; flex-direction: column;
+}
+.chat-input-line {
+  display: flex; gap: 8px;
 }
 #msg-input {
   flex: 1; background: #1a1a24; border: 1px solid #2a2a3a;
@@ -339,6 +442,19 @@ header {
 }
 #send-btn:hover:not(:disabled) { background: var(--accent-dark); }
 #send-btn:disabled { background: #2a2a3a; cursor: not-allowed; }
+
+/* ── GIFT BAR ── */
+.gift-bar {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.gift-item {
+  background: #1a1a28; border: 1px solid #2a2a3a;
+  border-radius: 10px; padding: 5px 10px;
+  font-size: 18px; cursor: pointer;
+  transition: all 0.15s; user-select: none;
+}
+.gift-item:hover:not(:disabled) { background: #2a2a3a; transform: scale(1.15); }
+.gift-item:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* ── CONTROLS ── */
 .controls {
@@ -382,7 +498,7 @@ header {
 .chat-backdrop.open { display: block; }
 .mobile-drawer {
   display: none; position: fixed;
-  bottom: 0; left: 0; right: 0; height: 55vh;
+  bottom: 0; left: 0; right: 0; height: 60vh;
   background: var(--bg3); border-radius: 18px 18px 0 0;
   border-top: 1px solid var(--border); z-index: 50;
   flex-direction: column; transform: translateY(100%);
@@ -409,9 +525,17 @@ header {
 #chat-mobile::-webkit-scrollbar { width: 2px; }
 #chat-mobile::-webkit-scrollbar-thumb { background: #2a2a3a; }
 .chat-input-row-mobile {
-  padding: 10px 12px; border-top: 1px solid var(--border);
-  display: flex; gap: 8px; flex-shrink: 0;
+  padding: 8px 12px; border-top: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px; flex-shrink: 0;
   padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+.gift-bar-mobile {
+  display: flex; gap: 6px; overflow-x: auto;
+  padding-bottom: 2px;
+}
+.gift-bar-mobile::-webkit-scrollbar { display: none; }
+.chat-input-line-mobile {
+  display: flex; gap: 8px;
 }
 #msg-input-mobile {
   flex: 1; background: #1a1a24; border: 1px solid #2a2a3a;
@@ -456,6 +580,8 @@ header {
   #common-badge { font-size: 10px; bottom: 8px; }
   .tag { font-size: 12px; padding: 6px 12px; }
   .mode-btn { font-size: 12px; padding: 6px 12px; }
+  .gender-btn { font-size: 12px; padding: 6px 12px; }
+  .ad-banner { min-height: 60px; }
 }
 </style>
 </head>
@@ -469,11 +595,25 @@ header {
   </div>
 </header>
 
+<!-- AdSense Banner -->
+<div class="ad-banner">
+  <ins class="adsbygoogle"
+       style="display:block;width:100%;max-height:60px;"
+       data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+       data-ad-slot="XXXXXXXXXX"
+       data-ad-format="horizontal"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
 <div class="main">
   <div class="videos">
     <video id="remote-video" autoplay playsinline></video>
 
-    <!-- Blind mode overlay on remote video -->
+    <!-- Gift stage -->
+    <div id="gift-stage"></div>
+
+    <!-- Blind mode overlay -->
     <div id="blind-banner">
       <span class="blind-icon">👁️</span>
       <span class="blind-label">Blind Mode — voice only</span>
@@ -525,9 +665,29 @@ header {
         <button class="mode-btn" data-mode="blind">👁️ Blind Mode</button>
       </div>
 
+      <!-- Gender filter -->
+      <div id="gender-panel">
+        <div class="gender-row">
+          <span class="gender-label">Ben</span>
+        </div>
+        <div class="gender-row" id="my-gender-row">
+          <button class="gender-btn selected" data-gender="other">👤 Belirtme</button>
+          <button class="gender-btn" data-gender="male">♂ Erkek</button>
+          <button class="gender-btn" data-gender="female">♀ Kadın</button>
+        </div>
+        <div class="gender-row">
+          <span class="gender-label">Arıyorum <span class="premium-badge">PREMIUM</span></span>
+        </div>
+        <div class="gender-row" id="want-gender-row">
+          <button class="gender-btn selected" data-want="any">🌐 Fark Etmez</button>
+          <button class="gender-btn premium-filter" data-want="male">♂ Erkek</button>
+          <button class="gender-btn premium-filter" data-want="female">♀ Kadın</button>
+        </div>
+      </div>
+
       <!-- Interest panel -->
       <div id="interest-panel">
-        <span class="hint">Your interests (optional)</span>
+        <span class="hint">İlgi alanların (opsiyonel)</span>
         <div id="interest-tags">
           <button class="tag" data-id="gaming">🎮 Gaming</button>
           <button class="tag" data-id="music">🎵 Music</button>
@@ -549,19 +709,31 @@ header {
     <div class="sidebar-header">Chat</div>
     <div id="chat"></div>
     <div class="chat-input-row">
-      <input type="text" id="msg-input" placeholder="Type a message..." disabled maxlength="500" autocomplete="off">
-      <button id="send-btn" disabled>➤</button>
+      <div class="gift-bar" id="gift-bar-desktop">
+        <button class="gift-item" data-gift="❤️" disabled>❤️</button>
+        <button class="gift-item" data-gift="🔥" disabled>🔥</button>
+        <button class="gift-item" data-gift="😂" disabled>😂</button>
+        <button class="gift-item" data-gift="👏" disabled>👏</button>
+        <button class="gift-item" data-gift="💎" disabled>💎</button>
+        <button class="gift-item" data-gift="🌹" disabled>🌹</button>
+        <button class="gift-item" data-gift="⚡" disabled>⚡</button>
+        <button class="gift-item" data-gift="🎉" disabled>🎉</button>
+      </div>
+      <div class="chat-input-line">
+        <input type="text" id="msg-input" placeholder="Mesaj yaz..." disabled maxlength="500" autocomplete="off">
+        <button id="send-btn" disabled>➤</button>
+      </div>
     </div>
   </div>
 </div>
 
 <div class="controls">
-  <button class="icon-btn" id="mic-btn" title="Mute mic">🎤</button>
-  <button class="icon-btn" id="cam-btn" title="Turn off camera">📷</button>
-  <button id="start-btn">▶ Start</button>
-  <button id="next-btn">⏭ Next</button>
-  <button id="stop-btn">■ Stop</button>
-  <button class="icon-btn" id="cc-btn" title="Live Translation (CC)">CC</button>
+  <button class="icon-btn" id="mic-btn" title="Mikrofon">🎤</button>
+  <button class="icon-btn" id="cam-btn" title="Kamera">📷</button>
+  <button id="start-btn">▶ Başla</button>
+  <button id="next-btn">⏭ Sonraki</button>
+  <button id="stop-btn">■ Durdur</button>
+  <button class="icon-btn" id="cc-btn" title="Canlı Çeviri">CC</button>
   <button class="icon-btn" id="chat-toggle-btn" title="Chat">💬</button>
 </div>
 
@@ -574,20 +746,51 @@ header {
   </div>
   <div id="chat-mobile"></div>
   <div class="chat-input-row-mobile">
-    <input type="text" id="msg-input-mobile" placeholder="Type a message..." disabled maxlength="500" autocomplete="off">
-    <button id="send-btn-mobile" disabled>➤</button>
+    <div class="gift-bar-mobile" id="gift-bar-mobile">
+      <button class="gift-item" data-gift="❤️" disabled>❤️</button>
+      <button class="gift-item" data-gift="🔥" disabled>🔥</button>
+      <button class="gift-item" data-gift="😂" disabled>😂</button>
+      <button class="gift-item" data-gift="👏" disabled>👏</button>
+      <button class="gift-item" data-gift="💎" disabled>💎</button>
+      <button class="gift-item" data-gift="🌹" disabled>🌹</button>
+      <button class="gift-item" data-gift="⚡" disabled>⚡</button>
+      <button class="gift-item" data-gift="🎉" disabled>🎉</button>
+    </div>
+    <div class="chat-input-line-mobile">
+      <input type="text" id="msg-input-mobile" placeholder="Mesaj yaz..." disabled maxlength="500" autocomplete="off">
+      <button id="send-btn-mobile" disabled>➤</button>
+    </div>
+  </div>
+</div>
+
+<!-- Premium Modal -->
+<div id="premium-modal">
+  <div class="premium-box">
+    <h3>⭐ <span>Premium</span> Üyelik</h3>
+    <p>Cinsiyet filtresi ile sadece istediğin kişilerle eşleş!</p>
+    <ul class="premium-features">
+      <li>Cinsiyet filtresi (Erkek / Kadın)</li>
+      <li>Reklamsız deneyim</li>
+      <li>Öncelikli eşleşme</li>
+      <li>Sınırsız hediye gönderimi</li>
+    </ul>
+    <div class="premium-price">₺29,99 <span>/ ay</span></div>
+    <button class="btn-premium-buy" id="btn-premium-buy">Şimdi Al →</button>
+    <button class="btn-premium-close" id="btn-premium-close">Belki daha sonra</button>
   </div>
 </div>
 
 <script>
 const TIMER_SECS = 15;
-const TIMER_CIRC = 2 * Math.PI * 14; // 87.96
+const TIMER_CIRC = 2 * Math.PI * 14;
 const INTEREST_LABELS = {
   gaming:'🎮 Gaming', music:'🎵 Music', movies:'🎬 Movies',
   sports:'⚽ Sports', travel:'✈️ Travel', art:'🎨 Art',
   food:'🍕 Food', tech:'💻 Tech', anime:'🌸 Anime', fitness:'💪 Fitness'
 };
 const userLang = (navigator.language || 'en').split('-')[0];
+
+const GIFTS = ['❤️','🔥','😂','👏','💎','🌹','⚡','🎉'];
 
 let ICE = [
   { urls: "stun:stun.l.google.com:19302" },
@@ -617,21 +820,24 @@ let active = false, role = null, partnered = false;
 let pendingCandidates = [], remoteDescSet = false;
 let iceReady = false, myGeo = null;
 let userInterests = [];
-let chatMode = 'normal'; // 'normal' | 'blind'
+let chatMode = 'normal';
 let blindRevealed = false;
+let myGender = 'other';
+let wantGender = 'any';
+let isPremium = false; // Stripe entegrasyonu sonrası gerçek kontrol
 
 // Timer
 let timerInterval = null, timerRemaining = 0, timerMax = TIMER_SECS;
 let myExtended = false;
 
-// Speech recognition & subtitle toggle
+// Speech
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null, subtitleTimer = null;
 let subEnabled = false;
 
 (async () => { await loadICE(); iceReady = true; })();
 
-// ── Utilities ──
+// ── Utils ──
 function toFlag(code) {
   if (!code || code.length !== 2) return "🌍";
   return String.fromCodePoint(...[...code.toUpperCase()].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
@@ -660,8 +866,11 @@ async function resolveLocationByGPS() {
 
 function getWsUrl() {
   const base = "wss://blinkchat-k69c.onrender.com/ws";
-  const params = userInterests.length ? `?interests=${encodeURIComponent(userInterests.join(','))}` : '';
-  return base + params;
+  const p = new URLSearchParams();
+  if (userInterests.length) p.set('interests', userInterests.join(','));
+  p.set('gender', myGender);
+  p.set('want', wantGender);
+  return base + '?' + p.toString();
 }
 
 async function translateText(text, targetLang) {
@@ -678,6 +887,44 @@ async function translateText(text, targetLang) {
   } catch { clearTimeout(tid); return null; }
 }
 
+// ── Premium ──
+function openPremiumModal() {
+  document.getElementById('premium-modal').classList.add('open');
+}
+function closePremiumModal() {
+  document.getElementById('premium-modal').classList.remove('open');
+}
+document.getElementById('btn-premium-close').addEventListener('click', closePremiumModal);
+document.getElementById('premium-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('premium-modal')) closePremiumModal();
+});
+document.getElementById('btn-premium-buy').addEventListener('click', () => {
+  // Stripe ödeme linki buraya gelecek
+  alert('Ödeme sistemi yakında aktif olacak!');
+});
+
+// ── Gender selector ──
+document.getElementById('my-gender-row').querySelectorAll('.gender-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#my-gender-row .gender-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    myGender = btn.dataset.gender;
+  });
+});
+
+document.getElementById('want-gender-row').querySelectorAll('.gender-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const want = btn.dataset.want;
+    if (want !== 'any' && !isPremium) {
+      openPremiumModal();
+      return;
+    }
+    document.querySelectorAll('#want-gender-row .gender-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    wantGender = want;
+  });
+});
+
 // ── Blind Mode ──
 function applyBlind(on) {
   if (on && !blindRevealed) {
@@ -688,21 +935,17 @@ function applyBlind(on) {
     blindBanner.style.display = 'none';
   }
 }
-
 function reveal() {
   blindRevealed = true;
   applyBlind(false);
-  if (ws?.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify({ type: 'reveal' }));
-  }
-  addMsg('You revealed the video!', 'system');
+  if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'reveal' }));
+  addMsg('Videoyu açtın!', 'system');
 }
 
 // ── Timer ──
 function startTimer() {
   stopTimer();
-  timerRemaining = TIMER_SECS;
-  timerMax = TIMER_SECS;
+  timerRemaining = TIMER_SECS; timerMax = TIMER_SECS;
   myExtended = false;
   timerWrap.style.display = 'flex';
   extendBtn.disabled = false;
@@ -714,34 +957,28 @@ function startTimer() {
     if (timerRemaining === 0) { stopTimer(); if (active) nextBtn.click(); }
   }, 1000);
 }
-
 function extendTimer(byPartner = false) {
-  timerRemaining = 30;
-  timerMax = 30;
-  updateTimerUI();
+  timerRemaining = 30; timerMax = 30; updateTimerUI();
   if (!byPartner) {
     myExtended = true;
     extendBtn.disabled = true;
     extendBtn.textContent = '✓ Extended';
     if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'extend' }));
   } else {
-    addMsg('Partner wants to keep chatting! ✨', 'system');
+    addMsg('Partner devam etmek istiyor! ✨', 'system');
   }
 }
-
 function stopTimer() {
-  clearInterval(timerInterval);
-  timerInterval = null;
+  clearInterval(timerInterval); timerInterval = null;
   timerWrap.style.display = 'none';
 }
-
 function updateTimerUI() {
   timerCount.textContent = timerRemaining;
   timerCircle.style.strokeDashoffset = TIMER_CIRC * (1 - timerRemaining / timerMax);
   timerCircle.style.stroke = timerRemaining > 10 ? 'var(--accent)' : timerRemaining > 5 ? '#f39c12' : '#e74c3c';
 }
 
-// ── Speech Recognition / Subtitles ──
+// ── Speech ──
 function startRecognition() {
   if (!SR || !partnered || !subEnabled) return;
   stopRecognition();
@@ -761,7 +998,6 @@ function startRecognition() {
   };
   try { recognition.start(); } catch {}
 }
-
 function stopRecognition() {
   if (recognition) {
     recognition.onend = null; recognition.onerror = null;
@@ -769,12 +1005,35 @@ function stopRecognition() {
     recognition = null;
   }
 }
-
 function showSubtitle(text) {
   subtitleText.textContent = text;
   subtitleWrap.style.display = 'block';
   clearTimeout(subtitleTimer);
   subtitleTimer = setTimeout(() => { subtitleWrap.style.display = 'none'; }, 4000);
+}
+
+// ── Gift ──
+function spawnGift(emoji) {
+  const stage = document.getElementById('gift-stage');
+  const el = document.createElement('div');
+  el.className = 'floating-gift';
+  el.textContent = emoji;
+  const x = 20 + Math.random() * 60;
+  el.style.left = x + '%';
+  el.style.bottom = '80px';
+  stage.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+function sendGift(emoji) {
+  if (!partnered || ws?.readyState !== WebSocket.OPEN) return;
+  ws.send(JSON.stringify({ type: 'gift', emoji }));
+  spawnGift(emoji);
+  addMsg(emoji, 'gift-msg');
+}
+
+function enableGifts(on) {
+  document.querySelectorAll('.gift-item').forEach(b => { b.disabled = !on; });
 }
 
 // ── DOM refs ──
@@ -839,25 +1098,26 @@ document.getElementById('mode-selector').querySelectorAll('.mode-btn').forEach(b
   });
 });
 
-// ── CC / Live Translation toggle ──
+// ── Gift buttons ──
+document.querySelectorAll('.gift-item').forEach(btn => {
+  btn.addEventListener('click', () => sendGift(btn.dataset.gift));
+});
+
+// ── CC toggle ──
 ccBtn.addEventListener('click', () => {
-  if (!SR) {
-    addMsg('Live translation not supported on this browser', 'system');
-    return;
-  }
+  if (!SR) { addMsg('Bu tarayıcıda canlı çeviri desteklenmiyor', 'system'); return; }
   subEnabled = !subEnabled;
   ccBtn.classList.toggle('active', subEnabled);
   if (subEnabled) {
     if (partnered) startRecognition();
-    addMsg('🌐 Live translation ON — subtitles will appear on both sides', 'system');
+    addMsg('🌐 Canlı çeviri AÇIK', 'system');
   } else {
     stopRecognition();
     subtitleWrap.style.display = 'none';
-    addMsg('Live translation OFF', 'system');
+    addMsg('Canlı çeviri KAPALI', 'system');
   }
 });
 
-// ── Reveal button ──
 revealBtn.addEventListener('click', reveal);
 extendBtn.addEventListener('click', () => extendTimer(false));
 
@@ -883,10 +1143,11 @@ function setOverlay(title, sub, spin = false) {
   spinner.style.display = spin ? 'block' : 'none';
   interestPanel.style.display = spin ? 'none' : 'flex';
   document.getElementById('mode-selector').style.display = spin ? 'none' : 'flex';
+  document.getElementById('gender-panel').style.display = spin ? 'none' : 'flex';
 }
 function hideOverlay() { overlay.classList.add('hidden'); }
 
-setOverlay('Talk to Strangers', 'Pick a mode and interests, then Start');
+setOverlay('Talk to Strangers', 'Mod ve ilgi alanlarını seç, sonra Başla');
 
 // ── addMsg ──
 function addMsg(text, type = 'system') {
@@ -897,7 +1158,7 @@ function addMsg(text, type = 'system') {
     if (type === 'them') {
       const tBtn = document.createElement('button');
       tBtn.className = 'msg-translate-btn';
-      tBtn.textContent = '🌐 Translate';
+      tBtn.textContent = '🌐 Çevir';
       tBtn.addEventListener('click', async () => {
         tBtn.textContent = '...'; tBtn.disabled = true;
         const translated = await translateText(text, userLang);
@@ -927,6 +1188,7 @@ function clearChats() {
 function enableChat(on) {
   msgInput.disabled = !on; sendBtn.disabled = !on;
   msgInputM.disabled = !on; sendBtnM.disabled = !on;
+  enableGifts(on);
 }
 function setStatus(t) { statusEl.textContent = t; }
 function setOnline(n) { if (n !== undefined) onlineEl.textContent = n + ' online'; }
@@ -968,12 +1230,12 @@ function createPC() {
     if (s === 'connected') {
       partnered = true;
       hideOverlay();
-      setStatus('Connected');
+      setStatus('Bağlandı');
       if (partnerPlaceEl.textContent) {
         partnerLocBadge.classList.remove('hidden');
-        addMsg(`Connected — ${partnerFlagEl.textContent} ${partnerPlaceEl.textContent}`, 'system');
+        addMsg(`Bağlandı — ${partnerFlagEl.textContent} ${partnerPlaceEl.textContent}`, 'system');
       } else {
-        addMsg('Connected with a stranger', 'system');
+        addMsg('Bir yabancıyla bağlandın', 'system');
       }
       enableChat(true);
       if (myGeo && ws?.readyState === WebSocket.OPEN)
@@ -982,14 +1244,14 @@ function createPC() {
       if (subEnabled) startRecognition();
       if (chatMode === 'blind') {
         applyBlind(true);
-        addMsg('👁️ Blind Mode — video hidden. Click Reveal when ready!', 'system');
+        addMsg('👁️ Blind Mode — video gizli. Hazır olunca Açığa Çıkar!', 'system');
       }
     }
     if (s === 'failed') {
-      addMsg('Connection failed, finding new...', 'system');
+      addMsg('Bağlantı başarısız, yeniden aranıyor...', 'system');
       closePC();
-      setOverlay('Looking for someone...', 'Please wait', true);
-      setStatus('Finding...');
+      setOverlay('Birisi aranıyor...', 'Lütfen bekle', true);
+      setStatus('Aranıyor...');
       connectWS();
     }
   };
@@ -1001,7 +1263,7 @@ function createPC() {
 function connectWS() {
   if (ws) { ws.onclose = null; ws.close(); }
   ws = new WebSocket(getWsUrl());
-  ws.onopen = () => { setStatus('Finding...'); setOverlay('Looking for someone...', 'Please wait', true); };
+  ws.onopen = () => { setStatus('Aranıyor...'); setOverlay('Birisi aranıyor...', 'Lütfen bekle', true); };
   ws.onmessage = async ({ data }) => {
     const msg = JSON.parse(data);
     if (msg.online !== undefined) setOnline(msg.online);
@@ -1011,19 +1273,19 @@ function connectWS() {
       myLocBadge.style.display = 'flex';
     }
     else if (msg.type === 'waiting') {
-      setOverlay('Looking for someone...', 'Please wait', true);
+      setOverlay('Birisi aranıyor...', 'Lütfen bekle', true);
     }
     else if (msg.type === 'matched') {
       role = msg.role;
       clearChats(); createPC();
-      setOverlay('Connecting...', '', true); setStatus('Connecting...');
+      setOverlay('Bağlanıyor...', '', true); setStatus('Bağlanıyor...');
       if (msg.partner_flag) {
         partnerFlagEl.textContent = msg.partner_flag;
         partnerPlaceEl.textContent = msg.partner_location || '';
       }
       if (msg.common_interests?.length) {
         const labels = msg.common_interests.map(id => INTEREST_LABELS[id] || id).join(' · ');
-        commonBadge.textContent = `Common: ${labels}`;
+        commonBadge.textContent = `Ortak: ${labels}`;
         commonBadge.style.display = 'block';
         setTimeout(() => { commonBadge.style.display = 'none'; }, 5000);
       }
@@ -1057,6 +1319,10 @@ function connectWS() {
       partnerLocBadge.classList.remove('hidden');
     }
     else if (msg.type === 'chat') { addMsg(msg.text, 'them'); }
+    else if (msg.type === 'gift') {
+      spawnGift(msg.emoji);
+      addMsg(msg.emoji, 'gift-msg');
+    }
     else if (msg.type === 'subtitle') {
       if (!subEnabled) return;
       showSubtitle(msg.text);
@@ -1068,25 +1334,25 @@ function connectWS() {
     }
     else if (msg.type === 'extend') { extendTimer(true); }
     else if (msg.type === 'reveal') {
-      addMsg('Partner revealed the video! 👁️', 'system');
+      addMsg('Partner videoyu açtı! 👁️', 'system');
       if (chatMode === 'blind') { blindRevealed = true; applyBlind(false); }
     }
     else if (msg.type === 'partner_left') { handlePartnerLeft(); }
   };
   ws.onclose = () => {
     if (!active) return;
-    closePC(); setStatus('Reconnecting...');
-    setOverlay('Reconnecting...', 'Please wait', true);
+    closePC(); setStatus('Yeniden bağlanıyor...');
+    setOverlay('Yeniden bağlanıyor...', 'Lütfen bekle', true);
     setTimeout(connectWS, 1500);
   };
 }
 
 function handlePartnerLeft() {
   if (!active) return;
-  addMsg('Stranger has disconnected', 'system');
+  addMsg('Yabancı ayrıldı', 'system');
   closePC();
-  setOverlay('Looking for someone...', 'Please wait', true);
-  setStatus('Finding...'); connectWS();
+  setOverlay('Birisi aranıyor...', 'Lütfen bekle', true);
+  setStatus('Aranıyor...'); connectWS();
 }
 
 // ── Buttons ──
@@ -1095,7 +1361,7 @@ startBtn.addEventListener('click', async () => {
     await getStream();
     if (!iceReady) await loadICE();
   } catch {
-    setOverlay('Permission denied', 'Allow camera & microphone to continue'); return;
+    setOverlay('İzin reddedildi', 'Devam etmek için kamera ve mikrofona izin ver'); return;
   }
   active = true;
   startBtn.style.display = 'none';
@@ -1116,8 +1382,8 @@ startBtn.addEventListener('click', async () => {
 nextBtn.addEventListener('click', () => {
   if (!active) return;
   closePC(); clearChats();
-  addMsg('Looking for someone new...', 'system');
-  setOverlay('Looking for someone...', 'Please wait', true);
+  addMsg('Yeni biri aranıyor...', 'system');
+  setOverlay('Birisi aranıyor...', 'Lütfen bekle', true);
   connectWS();
 });
 
@@ -1129,8 +1395,8 @@ stopBtn.addEventListener('click', () => {
   nextBtn.style.display = 'none';
   stopBtn.style.display = 'none';
   closeDrawer();
-  setOverlay('Talk to Strangers', 'Pick a mode and interests, then Start');
-  setStatus('Ready');
+  setOverlay('Talk to Strangers', 'Mod ve ilgi alanlarını seç, sonra Başla');
+  setStatus('Hazır');
 });
 
 window.addEventListener('beforeunload', () => {

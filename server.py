@@ -5,7 +5,8 @@ import aiohttp
 PORT = int(os.getenv("PORT", 8080))
 BASE = pathlib.Path(__file__).parent
 
-waiting_users = []  # [ws, interests, geo]
+# [ws, interests, geo, gender, want_gender]
+waiting_users = []
 rooms = {}
 user_rooms = {}
 user_geo = {}
@@ -47,14 +48,27 @@ async def get_geo(ip):
     return result
 
 
-def find_best_match(my_interests):
+def find_best_match(my_interests, my_gender, want_gender):
     global waiting_users
     waiting_users = [u for u in waiting_users if not u[0].closed]
-    if not waiting_users:
+
+    compatible = []
+    for i, (w, interests, geo, gender, their_want) in enumerate(waiting_users):
+        # I want them
+        if want_gender != "any" and gender != want_gender:
+            continue
+        # They want me
+        if their_want != "any" and their_want != my_gender:
+            continue
+        compatible.append(i)
+
+    if not compatible:
         return -1
+
     my_set = set(my_interests)
-    best_idx, best_score = 0, -1
-    for i, (w, interests, geo) in enumerate(waiting_users):
+    best_idx, best_score = compatible[0], -1
+    for i in compatible:
+        _, interests, _, _, _ = waiting_users[i]
         score = len(my_set & set(interests)) if my_set and interests else 0
         if score > best_score:
             best_score = score
@@ -94,6 +108,9 @@ async def ws_handler(request):
     interests_raw = request.rel_url.query.get("interests", "")
     my_interests = [i.strip() for i in interests_raw.split(",") if i.strip()] if interests_raw else []
 
+    my_gender = request.rel_url.query.get("gender", "other")       # male | female | other
+    want_gender = request.rel_url.query.get("want", "any")          # male | female | any
+
     ip = request.headers.get("X-Forwarded-For", request.remote or "")
     if "," in ip:
         ip = ip.split(",")[0].strip()
@@ -119,9 +136,9 @@ async def ws_handler(request):
         except Exception:
             pass
 
-    idx = find_best_match(my_interests)
+    idx = find_best_match(my_interests, my_gender, want_gender)
     if idx >= 0:
-        partner_ws, partner_interests, _ = waiting_users.pop(idx)
+        partner_ws, partner_interests, _, p_gender, _ = waiting_users.pop(idx)
         partner_geo = user_geo.get(id(partner_ws), {"flag": "🌍", "location": "Unknown"})
         rid = str(uuid.uuid4())
         rooms[rid] = [ws, partner_ws]
@@ -139,7 +156,7 @@ async def ws_handler(request):
             "common_interests": common
         })
     else:
-        waiting_users.append([ws, my_interests, geo])
+        waiting_users.append([ws, my_interests, geo, my_gender, want_gender])
         await ws.send_json({"type": "waiting", "online": online})
 
     try:
