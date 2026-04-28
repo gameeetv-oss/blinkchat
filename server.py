@@ -215,6 +215,7 @@ async def main():
     app.router.add_get("/googlee2b500dcde5fee75.html", lambda r: web.FileResponse(BASE / "static" / "googlee2b500dcde5fee75.html"))
     app.router.add_get("/sitemap.xml", sitemap)
     app.router.add_get("/robots.txt", lambda r: web.FileResponse(BASE / "static" / "robots.txt"))
+    app.router.add_get("/ads.txt", lambda r: web.FileResponse(BASE / "static" / "ads.txt"))
     app.router.add_static("/icons", BASE / "static" / "icons")
     app.router.add_static("/static", BASE / "static")
     runner = web.AppRunner(app)
