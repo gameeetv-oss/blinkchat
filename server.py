@@ -1,6 +1,8 @@
-import asyncio, json, uuid, os, pathlib
+import asyncio, json, uuid, os, pathlib, logging
 from aiohttp import web, WSMsgType
 import aiohttp
+
+logging.basicConfig(level=logging.INFO)
 
 PORT = int(os.getenv("PORT", 8080))
 BASE = pathlib.Path(__file__).parent
@@ -96,6 +98,20 @@ async def sitemap(request):
 
 
 async def ping(request):
+    return web.Response(text="ok")
+
+
+async def report(request):
+    try:
+        data = await request.json()
+        reason = str(data.get('reason', 'unknown'))[:100]
+        ts = str(data.get('ts', ''))[:30]
+        ip = request.headers.get("X-Forwarded-For", request.remote or "")
+        if "," in ip:
+            ip = ip.split(",")[0].strip()
+        logging.warning(f"[REPORT] reason={reason} ts={ts} ip={ip}")
+    except Exception:
+        pass
     return web.Response(text="ok")
 
 
@@ -211,6 +227,7 @@ async def main():
     app = web.Application()
     app.router.add_get("/", index)
     app.router.add_get("/ping", ping)
+    app.router.add_post("/report", report)
     app.router.add_get("/ws", ws_handler)
     app.router.add_get("/googlee2b500dcde5fee75.html", lambda r: web.FileResponse(BASE / "static" / "googlee2b500dcde5fee75.html"))
     app.router.add_get("/sitemap.xml", sitemap)

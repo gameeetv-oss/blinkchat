@@ -178,47 +178,6 @@ header {
 #reveal-btn:hover { background: var(--accent-dark); }
 
 /* ── TIMER ── */
-#timer-wrap {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: none;
-  align-items: center;
-  gap: 8px;
-  z-index: 12;
-  background: rgba(0,0,0,0.6);
-  padding: 4px 10px 4px 5px;
-  border-radius: 20px;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255,255,255,0.08);
-}
-#timer-ring { position: relative; width: 34px; height: 34px; flex-shrink: 0; }
-#timer-ring svg { width: 34px; height: 34px; transform: rotate(-90deg); }
-.t-bg { fill: none; stroke: #333; stroke-width: 3; }
-.t-prog {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-dasharray: 88;
-  stroke-dashoffset: 0;
-  transition: stroke-dashoffset 1s linear, stroke 0.3s;
-}
-#timer-count {
-  position: absolute; inset: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; font-weight: 700;
-}
-#extend-btn {
-  background: #27ae60; border: none; color: #fff;
-  padding: 5px 11px; border-radius: 12px;
-  font-size: 12px; font-weight: 600; cursor: pointer;
-  transition: background 0.2s; white-space: nowrap;
-}
-#extend-btn:hover { background: #2ecc71; }
-#extend-btn:disabled { background: #1a3a27; color: #555; cursor: default; }
 
 /* ── SUBTITLES ── */
 #subtitle-wrap {
@@ -277,9 +236,10 @@ header {
   display: flex; align-items: center; justify-content: center;
   background: rgba(13,13,18,0.93);
   flex-direction: column; gap: 14px; z-index: 5;
+  overflow-y: auto; padding: 16px 0;
 }
 .overlay.hidden { display: none; }
-.overlay h2 { font-size: 26px; font-weight: 700; text-align: center; padding: 0 20px; }
+.overlay h2 { display: none; }
 .overlay .ov-sub { color: var(--text-muted); font-size: 14px; text-align: center; padding: 0 20px; }
 .spinner {
   width: 42px; height: 42px;
@@ -551,6 +511,89 @@ header {
   font-size: 16px; flex-shrink: 0;
 }
 
+/* ── EULA MODAL ── */
+#eula-modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92); z-index: 200;
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+#eula-modal.open { display: flex; }
+.eula-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 18px; padding: 28px 24px;
+  max-width: 400px; width: 100%;
+  display: flex; flex-direction: column; gap: 14px;
+  max-height: 90vh; overflow-y: auto;
+}
+.eula-box h2 { font-size: 20px; font-weight: 800; color: var(--accent); }
+.eula-box p { color: #999; font-size: 13px; line-height: 1.6; }
+.eula-rules {
+  background: #0d0d18; border-radius: 10px;
+  padding: 14px; font-size: 12px; color: #888;
+  line-height: 1.8; border: 1px solid #1e1e2e;
+}
+.eula-rules li { margin-left: 16px; }
+.eula-check {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 13px; color: #ccc; cursor: pointer;
+}
+.eula-check input { margin-top: 2px; accent-color: var(--accent); width: 16px; height: 16px; flex-shrink: 0; }
+#eula-accept-btn {
+  background: var(--accent); border: none; color: #fff;
+  padding: 13px; border-radius: 12px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  opacity: 0.4; pointer-events: none; transition: all 0.2s;
+}
+#eula-accept-btn.ready { opacity: 1; pointer-events: all; }
+.eula-contact { font-size: 11px; color: #555; text-align: center; }
+.eula-contact a { color: var(--accent); }
+
+/* ── REPORT MODAL ── */
+#report-modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.8); z-index: 150;
+  align-items: center; justify-content: center; padding: 20px;
+}
+#report-modal.open { display: flex; }
+.report-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 24px 20px;
+  max-width: 320px; width: 100%;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.report-box h3 { font-size: 17px; font-weight: 700; }
+.report-box select {
+  background: #1a1a24; border: 1px solid #2a2a3a;
+  color: #fff; padding: 10px 12px; border-radius: 8px;
+  font-size: 13px; outline: none; width: 100%;
+}
+.report-box-btns { display: flex; gap: 8px; }
+.btn-report-send {
+  flex: 1; background: #c0392b; border: none; color: #fff;
+  padding: 11px; border-radius: 10px; font-size: 14px;
+  font-weight: 700; cursor: pointer;
+}
+.btn-report-cancel {
+  flex: 1; background: #1e1e2e; border: none; color: #888;
+  padding: 11px; border-radius: 10px; font-size: 14px; cursor: pointer;
+}
+
+/* ── SAFETY BUTTONS ── */
+#safety-bar {
+  display: none; position: absolute;
+  top: 10px; right: 10px; z-index: 20;
+  flex-direction: column; gap: 6px;
+}
+#safety-bar.visible { display: flex; }
+.safety-btn {
+  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.12);
+  color: #fff; padding: 6px 10px; border-radius: 20px;
+  font-size: 12px; cursor: pointer; backdrop-filter: blur(6px);
+  white-space: nowrap; transition: background 0.2s;
+}
+.safety-btn:hover { background: rgba(192,57,43,0.7); }
+
 /* ── MOBILE OVERRIDES ── */
 @media (max-width: 767px) {
   header { padding: 10px 14px; }
@@ -571,11 +614,7 @@ header {
   #stop-btn  { padding: 12px 16px; font-size: 14px; }
   #chat-toggle-btn { display: flex; position: relative; }
   .mobile-drawer { display: flex; }
-  #timer-wrap { top: 8px; }
-  #timer-ring { width: 28px; height: 28px; }
-  #timer-ring svg { width: 28px; height: 28px; }
-  #timer-count { font-size: 9px; }
-  #extend-btn { font-size: 11px; padding: 4px 9px; }
+
   #subtitle-wrap { bottom: 68px; }
   #subtitle-text { font-size: 13px; }
   #common-badge { font-size: 10px; bottom: 8px; }
@@ -588,11 +627,56 @@ header {
 </head>
 <body>
 
+<!-- EULA Modal -->
+<div id="eula-modal">
+  <div class="eula-box">
+    <h2>⚠️ Kullanmadan Önce Oku</h2>
+    <p>BlinkChat yabancılarla rastgele görüntülü sohbet uygulamasıdır. Devam etmek için aşağıdaki koşulları kabul etmelisin.</p>
+    <div class="eula-rules">
+      <ul>
+        <li>Bu uygulama <strong>18 yaş ve üzeri</strong> kullanıcılar içindir</li>
+        <li>Uygunsuz, taciz edici veya yasadışı içerik <strong>kesinlikle yasaktır</strong></li>
+        <li>Rahatsız edici içerikleri şikayet etmek zorundasın</li>
+        <li>İhlaller 24 saat içinde incelenir, ihlalci kullanıcılar uzaklaştırılır</li>
+        <li>Anonim olarak bağlansın da gizlilik politikamız geçerlidir</li>
+      </ul>
+    </div>
+    <label class="eula-check" id="eula-check-age">
+      <input type="checkbox" id="chk-age"> 18 yaşında veya daha büyüğüm
+    </label>
+    <label class="eula-check" id="eula-check-terms">
+      <input type="checkbox" id="chk-terms"> Kullanım Koşullarını ve Gizlilik Politikasını okudum, kabul ediyorum
+    </label>
+    <button id="eula-accept-btn">Kabul Et ve Devam Et</button>
+    <p class="eula-contact">Sorun bildirmek için: <a href="mailto:support@blinkchat.app">support@blinkchat.app</a></p>
+  </div>
+</div>
+
+<!-- Report Modal -->
+<div id="report-modal">
+  <div class="report-box">
+    <h3>🚩 Kullanıcıyı Şikayet Et</h3>
+    <select id="report-reason">
+      <option value="">Sebep seç...</option>
+      <option value="nudity">Müstehcen içerik / Çıplaklık</option>
+      <option value="harassment">Taciz / Hakaret</option>
+      <option value="underage">Reşit olmayan görünüyor</option>
+      <option value="spam">Spam / Reklam</option>
+      <option value="other">Diğer</option>
+    </select>
+    <div class="report-box-btns">
+      <button class="btn-report-send" id="btn-report-send">Şikayet Et ve Geç</button>
+      <button class="btn-report-cancel" id="btn-report-cancel">İptal</button>
+    </div>
+  </div>
+</div>
+
 <header>
   <div class="logo"><span class="blink">blink</span><span class="chat">chat</span></div>
   <div id="status-bar">
     <span id="status">Ready</span>
     <span id="online-count">0 online</span>
+    <a href="mailto:support@blinkchat.app" style="font-size:11px;color:#555;text-decoration:none;">18+ | Destek</a>
   </div>
 </header>
 
@@ -621,23 +705,17 @@ header {
       <button id="reveal-btn">✨ Reveal</button>
     </div>
 
-    <!-- Timer -->
-    <div id="timer-wrap">
-      <div id="timer-ring">
-        <svg viewBox="0 0 34 34">
-          <circle class="t-bg" cx="17" cy="17" r="14"/>
-          <circle class="t-prog" id="timer-circle" cx="17" cy="17" r="14"/>
-        </svg>
-        <span id="timer-count">15</span>
-      </div>
-      <button id="extend-btn">✓ Extend</button>
-    </div>
-
     <!-- Subtitles -->
     <div id="subtitle-wrap"><span id="subtitle-text"></span></div>
 
     <!-- Common interests badge -->
     <div id="common-badge"></div>
+
+    <!-- Safety buttons -->
+    <div id="safety-bar">
+      <button class="safety-btn" id="report-btn">🚩 Şikayet</button>
+      <button class="safety-btn" id="block-btn">🚫 Engelle</button>
+    </div>
 
     <!-- Partner location -->
     <div class="loc-badge hidden" id="partner-loc-badge">
@@ -782,8 +860,33 @@ header {
 </div>
 
 <script>
-const TIMER_SECS = 15;
-const TIMER_CIRC = 2 * Math.PI * 14;
+// ── EULA ──
+(function() {
+  if (!localStorage.getItem('blinkchat_eula_v1')) {
+    document.getElementById('eula-modal').classList.add('open');
+  }
+  function checkEula() {
+    const ok = document.getElementById('chk-age').checked && document.getElementById('chk-terms').checked;
+    document.getElementById('eula-accept-btn').classList.toggle('ready', ok);
+  }
+  document.getElementById('chk-age').addEventListener('change', checkEula);
+  document.getElementById('chk-terms').addEventListener('change', checkEula);
+  document.getElementById('eula-accept-btn').addEventListener('click', () => {
+    localStorage.setItem('blinkchat_eula_v1', '1');
+    document.getElementById('eula-modal').classList.remove('open');
+  });
+})();
+
+// ── PROFANITY FILTER ──
+const BAD_WORDS = ['fuck','shit','bitch','asshole','nigger','faggot','whore','cunt','porn','nude','sikiş','sik','orospu','göt','amk','amına','piç','yarrak','oç','ibne'];
+function filterText(t) {
+  let out = t;
+  BAD_WORDS.forEach(w => {
+    out = out.replace(new RegExp(w, 'gi'), '*'.repeat(w.length));
+  });
+  return out;
+}
+
 const INTEREST_LABELS = {
   gaming:'🎮 Gaming', music:'🎵 Music', movies:'🎬 Movies',
   sports:'⚽ Sports', travel:'✈️ Travel', art:'🎨 Art',
@@ -828,8 +931,7 @@ let wantGender = 'any';
 let isPremium = false; // Stripe entegrasyonu sonrası gerçek kontrol
 
 // Timer
-let timerInterval = null, timerRemaining = 0, timerMax = TIMER_SECS;
-let myExtended = false;
+let timerInterval = null;
 
 // Speech
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -943,40 +1045,8 @@ function reveal() {
   addMsg('Videoyu açtın!', 'system');
 }
 
-// ── Timer ──
-function startTimer() {
-  stopTimer();
-  timerRemaining = TIMER_SECS; timerMax = TIMER_SECS;
-  myExtended = false;
-  timerWrap.style.display = 'flex';
-  extendBtn.disabled = false;
-  extendBtn.textContent = '✓ Extend';
-  updateTimerUI();
-  timerInterval = setInterval(() => {
-    timerRemaining = Math.max(0, timerRemaining - 1);
-    updateTimerUI();
-    if (timerRemaining === 0) { stopTimer(); if (active) nextBtn.click(); }
-  }, 1000);
-}
-function extendTimer(byPartner = false) {
-  timerRemaining = 30; timerMax = 30; updateTimerUI();
-  if (!byPartner) {
-    myExtended = true;
-    extendBtn.disabled = true;
-    extendBtn.textContent = '✓ Extended';
-    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'extend' }));
-  } else {
-    addMsg('Partner devam etmek istiyor! ✨', 'system');
-  }
-}
 function stopTimer() {
   clearInterval(timerInterval); timerInterval = null;
-  timerWrap.style.display = 'none';
-}
-function updateTimerUI() {
-  timerCount.textContent = timerRemaining;
-  timerCircle.style.strokeDashoffset = TIMER_CIRC * (1 - timerRemaining / timerMax);
-  timerCircle.style.stroke = timerRemaining > 10 ? 'var(--accent)' : timerRemaining > 5 ? '#f39c12' : '#e74c3c';
 }
 
 // ── Speech ──
@@ -1037,6 +1107,45 @@ function enableGifts(on) {
   document.querySelectorAll('.gift-item').forEach(b => { b.disabled = !on; });
 }
 
+// ── Safety bar ──
+const safetyBar = document.getElementById('safety-bar');
+function showSafetyBar(on) { safetyBar.classList.toggle('visible', on); }
+
+// ── Report ──
+document.getElementById('report-btn').addEventListener('click', () => {
+  document.getElementById('report-modal').classList.add('open');
+});
+document.getElementById('btn-report-cancel').addEventListener('click', () => {
+  document.getElementById('report-modal').classList.remove('open');
+  document.getElementById('report-reason').value = '';
+});
+document.getElementById('btn-report-send').addEventListener('click', async () => {
+  const reason = document.getElementById('report-reason').value;
+  if (!reason) { alert('Lütfen bir sebep seç'); return; }
+  try {
+    await fetch('/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason, ts: new Date().toISOString() })
+    });
+  } catch {}
+  document.getElementById('report-modal').classList.remove('open');
+  document.getElementById('report-reason').value = '';
+  addMsg('⚠️ Şikayet iletildi, teşekkürler. Yeni biri aranıyor...', 'system');
+  closePC(); clearChats();
+  setOverlay('Birisi aranıyor...', 'Lütfen bekle', true);
+  connectWS();
+});
+
+// ── Block ──
+document.getElementById('block-btn').addEventListener('click', () => {
+  if (!confirm('Bu kullanıcıyı engellemek istiyor musun? Bağlantı kesilecek.')) return;
+  addMsg('🚫 Kullanıcı engellendi. Yeni biri aranıyor...', 'system');
+  closePC(); clearChats();
+  setOverlay('Birisi aranıyor...', 'Lütfen bekle', true);
+  connectWS();
+});
+
 // ── DOM refs ──
 const remoteVideo     = document.getElementById('remote-video');
 const localVideo      = document.getElementById('local-video');
@@ -1068,10 +1177,6 @@ const ccBtn           = document.getElementById('cc-btn');
 const drawer          = document.getElementById('mobile-drawer');
 const backdrop        = document.getElementById('chat-backdrop');
 const drawerClose     = document.getElementById('drawer-close');
-const timerWrap       = document.getElementById('timer-wrap');
-const timerCount      = document.getElementById('timer-count');
-const timerCircle     = document.getElementById('timer-circle');
-const extendBtn       = document.getElementById('extend-btn');
 const subtitleWrap    = document.getElementById('subtitle-wrap');
 const subtitleText    = document.getElementById('subtitle-text');
 const commonBadge     = document.getElementById('common-badge');
@@ -1120,7 +1225,6 @@ ccBtn.addEventListener('click', () => {
 });
 
 revealBtn.addEventListener('click', reveal);
-extendBtn.addEventListener('click', () => extendTimer(false));
 
 // ── Mobile drawer ──
 function openDrawer() { drawer.classList.add('open'); backdrop.classList.add('open'); msgInputM.focus(); }
@@ -1206,6 +1310,7 @@ async function getStream() {
 
 function closePC() {
   stopTimer(); stopRecognition();
+  showSafetyBar(false);
   commonBadge.style.display = 'none';
   subtitleWrap.style.display = 'none';
   blindRevealed = false;
@@ -1231,6 +1336,7 @@ function createPC() {
     if (s === 'connected') {
       partnered = true;
       hideOverlay();
+      showSafetyBar(true);
       setStatus('Bağlandı');
       if (partnerPlaceEl.textContent) {
         partnerLocBadge.classList.remove('hidden');
@@ -1241,7 +1347,6 @@ function createPC() {
       enableChat(true);
       if (myGeo && ws?.readyState === WebSocket.OPEN)
         ws.send(JSON.stringify({ type: 'my_location', flag: myGeo.flag, location: myGeo.location }));
-      startTimer();
       if (subEnabled) startRecognition();
       if (chatMode === 'blind') {
         applyBlind(true);
@@ -1319,7 +1424,7 @@ function connectWS() {
       partnerFlagEl.textContent = msg.flag; partnerPlaceEl.textContent = msg.location;
       partnerLocBadge.classList.remove('hidden');
     }
-    else if (msg.type === 'chat') { addMsg(msg.text, 'them'); }
+    else if (msg.type === 'chat') { addMsg(filterText(msg.text), 'them'); }
     else if (msg.type === 'gift') {
       spawnGift(msg.emoji);
       addMsg(msg.emoji, 'gift-msg');
@@ -1333,7 +1438,6 @@ function connectWS() {
         });
       }
     }
-    else if (msg.type === 'extend') { extendTimer(true); }
     else if (msg.type === 'reveal') {
       addMsg('Partner videoyu açtı! 👁️', 'system');
       if (chatMode === 'blind') { blindRevealed = true; applyBlind(false); }
@@ -1405,8 +1509,9 @@ window.addEventListener('beforeunload', () => {
 });
 
 function sendMsg() {
-  const text = msgInput.value.trim();
-  if (!text || ws?.readyState !== WebSocket.OPEN || !partnered) return;
+  const raw = msgInput.value.trim();
+  if (!raw || ws?.readyState !== WebSocket.OPEN || !partnered) return;
+  const text = filterText(raw);
   ws.send(JSON.stringify({ type: 'chat', text }));
   addMsg(text, 'me'); msgInput.value = '';
 }
@@ -1414,8 +1519,9 @@ sendBtn.addEventListener('click', sendMsg);
 msgInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
 
 function sendMsgMobile() {
-  const text = msgInputM.value.trim();
-  if (!text || ws?.readyState !== WebSocket.OPEN || !partnered) return;
+  const raw = msgInputM.value.trim();
+  if (!raw || ws?.readyState !== WebSocket.OPEN || !partnered) return;
+  const text = filterText(raw);
   ws.send(JSON.stringify({ type: 'chat', text }));
   addMsg(text, 'me'); msgInputM.value = '';
 }
