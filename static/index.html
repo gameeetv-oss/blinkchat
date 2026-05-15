@@ -248,7 +248,25 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <input id="login-pw" class="input" type="password" placeholder="••••••••" autocomplete="current-password">
     </div>
     <button class="btn btn-primary" onclick="doLogin()">Giriş Yap</button>
+    <div class="auth-link" style="margin-top:12px"><a href="#" onclick="showScreen('forgot');return false" style="color:var(--muted)">Şifremi Unuttum</a></div>
     <div class="auth-link">Hesabın yok mu? <a href="#" onclick="showScreen('register');return false">Kayıt Ol</a></div>
+  </div>
+</div>
+
+<!-- FORGOT PASSWORD -->
+<div id="screen-forgot" class="screen">
+  <button class="auth-back" onclick="showScreen('login')">←</button>
+  <div class="auth-wrap">
+    <h1 class="auth-title">Şifreni mi unuttun? 🔑</h1>
+    <p class="auth-sub">Email adresini gir, sıfırlama linki gönderelim</p>
+    <div id="forgot-error" class="error-msg"></div>
+    <div id="forgot-success" style="background:#0a2a10;border:1px solid #1a5020;color:#6fdb7f;padding:12px 16px;border-radius:10px;font-size:14px;margin-bottom:16px;display:none"></div>
+    <div class="input-group">
+      <label class="input-label">EMAIL</label>
+      <input id="forgot-email" class="input" type="email" placeholder="ornek@email.com" autocomplete="email">
+    </div>
+    <button class="btn btn-primary" id="forgot-btn" onclick="doForgotPassword()">Link Gönder</button>
+    <div class="auth-link"><a href="#" onclick="showScreen('login');return false" style="color:var(--muted)">← Girişe dön</a></div>
   </div>
 </div>
 
@@ -563,6 +581,22 @@ async function doLogin() {
   token = data.token;
   localStorage.setItem('vibe_token', token);
   await afterAuth();
+}
+
+async function doForgotPassword() {
+  hideError('forgot-error');
+  document.getElementById('forgot-success').style.display = 'none';
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) return showError('forgot-error', 'Email adresini gir');
+  const btn = document.getElementById('forgot-btn');
+  btn.disabled = true; btn.textContent = 'Gönderiliyor...';
+  await api('/api/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
+  btn.disabled = false; btn.textContent = 'Link Gönder';
+  // Always show success (don't leak whether email exists)
+  const s = document.getElementById('forgot-success');
+  s.textContent = '✓ Eğer bu email kayıtlıysa sıfırlama linki gönderildi. Spam klasörünü de kontrol et.';
+  s.style.display = 'block';
+  document.getElementById('forgot-email').value = '';
 }
 
 async function doRegister() {

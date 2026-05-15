@@ -1,4 +1,4 @@
-import asyncio, json, uuid, os, pathlib, logging, time, re
+import asyncio, json, uuid, os, pathlib, logging, time, re, secrets
 from aiohttp import web, WSMsgType
 import aiosqlite
 import jwt
@@ -10,6 +10,9 @@ PORT = int(os.getenv("PORT", 8080))
 BASE = pathlib.Path(__file__).parent
 DB_PATH = BASE / "data" / "vibe.db"
 JWT_SECRET = os.getenv("JWT_SECRET", "vibe-secret-change-in-prod-2026")
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@vibeapp.co")
+APP_URL = os.getenv("APP_URL", "https://blinkchat-k69c.onrender.com")
 
 # WebRTC signaling: matched users only
 rooms = {}         # room_id -> [ws1, ws2]
@@ -70,6 +73,13 @@ async def init_db():
                 created_at REAL NOT NULL
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS reset_tokens (
+                token TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                expires_at REAL NOT NULL
+            )
+        """)
         await db.commit()
 
 
@@ -109,6 +119,27 @@ def check_pw(pw: str, hashed: str) -> bool:
     try:
         return bcrypt.checkpw(pw.encode(), hashed.encode())
     except Exception:
+        return False
+
+
+# ── EMAIL ─────────────────────────────────────────────────
+
+async def send_email(to: str, subject: str, html: str) -> bool:
+    if not RESEND_API_KEY:
+        logging.warning(f"[EMAIL] No RESEND_API_KEY — would send to {to}: {subject}")
+        return True
+    import aiohttp as _aiohttp
+    try:
+        async with _aiohttp.ClientSession() as s:
+            async with s.post(
+                "https://api.resend.com/emails",
+                headers={"Authorization": f"Bearer {RESEND_API_KEY}"},
+                json={"from": FROM_EMAIL, "to": [to], "subject": subject, "html": html},
+                timeout=_aiohttp.ClientTimeout(total=10)
+            ) as r:
+                return r.status in (200, 201)
+    except Exception as e:
+        logging.error(f"[EMAIL] Send failed: {e}")
         return False
 
 
@@ -171,6 +202,151 @@ async def login(request):
         return web.json_response({"error": "Email veya şifre hatalı"}, status=401)
 
     return web.json_response({"token": make_token(row["id"]), "uid": row["id"]})
+
+
+async def forgot_password(request):
+    try:
+        d = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    email = str(d.get("email", "")).strip().lower()
+    if not email:
+        return web.json_response({"error": "Email gerekli"}, status=400)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("SELECT id, name FROM users WHERE email=?", (email,)) as cur:
+            row = await cur.fetchone()
+
+    # Always return success to prevent email enumeration
+    if row:
+        token = secrets.token_urlsafe(32)
+        expires = time.time() + 3600  # 1 hour
+
+        async with aiosqlite.connect(DB_PATH) as db:
+            # Remove old tokens for this user
+            await db.execute("DELETE FROM reset_tokens WHERE user_id=?", (row["id"],))
+            await db.execute(
+                "INSERT INTO reset_tokens (token, user_id, expires_at) VALUES (?,?,?)",
+                (token, row["id"], expires)
+            )
+            await db.commit()
+
+        reset_link = f"{APP_URL}/reset?token={token}"
+        await send_email(
+            to=email,
+            subject="Vibe – Şifrenizi Sıfırlayın",
+            html=f"""
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#0d0d14;color:#fff;border-radius:16px">
+              <h2 style="color:#e94560;margin-bottom:8px">Şifre Sıfırlama</h2>
+              <p style="color:#aaa;margin-bottom:24px">Merhaba {row['name']}, aşağıdaki butona tıklayarak şifreni sıfırlayabilirsin.</p>
+              <a href="{reset_link}" style="display:inline-block;background:linear-gradient(135deg,#e94560,#c73652);color:#fff;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:700">Şifremi Sıfırla</a>
+              <p style="color:#666;font-size:13px;margin-top:24px">Bu link 1 saat geçerlidir. Eğer bu isteği sen yapmadıysan bu emaili görmezden gelebilirsin.</p>
+            </div>"""
+        )
+
+    return web.json_response({"ok": True})
+
+
+async def reset_password_page(request):
+    token = request.rel_url.query.get("token", "")
+    html = f"""<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vibe – Şifre Sıfırla</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{background:#0d0d14;color:#fff;font-family:-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}}
+.box{{background:#1e1e30;border-radius:20px;padding:36px;width:100%;max-width:400px}}
+h2{{color:#e94560;margin-bottom:6px}}
+p{{color:#888;font-size:14px;margin-bottom:28px}}
+input{{width:100%;padding:14px 16px;background:#14141f;border:1.5px solid #252535;border-radius:12px;color:#fff;font-size:16px;outline:none;margin-bottom:14px}}
+input:focus{{border-color:#e94560}}
+button{{width:100%;padding:15px;background:linear-gradient(135deg,#e94560,#c73652);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer}}
+.msg{{padding:12px 16px;border-radius:10px;font-size:14px;margin-bottom:14px;display:none}}
+.msg.ok{{background:#0a2a10;border:1px solid #1a5020;color:#6fdb7f}}
+.msg.err{{background:#2a0a10;border:1px solid #5a1020;color:#ff6b6b}}
+</style>
+</head>
+<body>
+<div class="box">
+  <h2>Yeni Şifre Belirle</h2>
+  <p>En az 6 karakter uzunluğunda bir şifre seç</p>
+  <div id="msg" class="msg"></div>
+  <input type="password" id="pw1" placeholder="Yeni şifre" autocomplete="new-password">
+  <input type="password" id="pw2" placeholder="Şifreyi tekrar gir" autocomplete="new-password">
+  <button onclick="submit()">Şifremi Güncelle</button>
+</div>
+<script>
+async function submit() {{
+  const pw1 = document.getElementById('pw1').value;
+  const pw2 = document.getElementById('pw2').value;
+  const msg = document.getElementById('msg');
+  msg.style.display = 'none';
+  if (pw1.length < 6) {{ showMsg('err', 'Şifre en az 6 karakter olmalı'); return; }}
+  if (pw1 !== pw2) {{ showMsg('err', 'Şifreler eşleşmiyor'); return; }}
+  const res = await fetch('/api/reset-password', {{
+    method: 'POST',
+    headers: {{'Content-Type':'application/json'}},
+    body: JSON.stringify({{token: '{token}', password: pw1}})
+  }});
+  const data = await res.json();
+  if (res.ok) {{
+    showMsg('ok', 'Şifren güncellendi! Uygulamadan giriş yapabilirsin.');
+    document.querySelector('button').disabled = true;
+    document.getElementById('pw1').disabled = true;
+    document.getElementById('pw2').disabled = true;
+  }} else {{
+    showMsg('err', data.error || 'Bir hata oluştu');
+  }}
+}}
+function showMsg(type, text) {{
+  const el = document.getElementById('msg');
+  el.className = 'msg ' + type;
+  el.textContent = text;
+  el.style.display = 'block';
+}}
+</script>
+</body>
+</html>"""
+    return web.Response(text=html, content_type="text/html")
+
+
+async def do_reset_password(request):
+    try:
+        d = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    token = str(d.get("token", ""))
+    password = str(d.get("password", ""))
+
+    if not token or len(password) < 6:
+        return web.json_response({"error": "Geçersiz istek"}, status=400)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM reset_tokens WHERE token=?", (token,)
+        ) as cur:
+            row = await cur.fetchone()
+
+        if not row:
+            return web.json_response({"error": "Geçersiz veya kullanılmış link"}, status=400)
+        if time.time() > row["expires_at"]:
+            await db.execute("DELETE FROM reset_tokens WHERE token=?", (token,))
+            await db.commit()
+            return web.json_response({"error": "Link süresi dolmuş, tekrar isteyin"}, status=400)
+
+        new_hash = hash_pw(password)
+        await db.execute("UPDATE users SET password_hash=? WHERE id=?", (new_hash, row["user_id"]))
+        await db.execute("DELETE FROM reset_tokens WHERE token=?", (token,))
+        await db.commit()
+
+    return web.json_response({"ok": True})
 
 
 # ── API: PROFILE ──────────────────────────────────────────
@@ -557,6 +733,9 @@ async def main():
 
     app.router.add_post("/api/register", register)
     app.router.add_post("/api/login", login)
+    app.router.add_post("/api/forgot-password", forgot_password)
+    app.router.add_get("/reset", reset_password_page)
+    app.router.add_post("/api/reset-password", do_reset_password)
     app.router.add_get("/api/me", get_me)
     app.router.add_put("/api/profile", update_profile)
     app.router.add_post("/api/voice", upload_voice)
