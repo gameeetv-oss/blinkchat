@@ -44,9 +44,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .input::placeholder{color:#444}
 
 /* AUTH */
-#screen-login,#screen-register{overflow-y:auto;-webkit-overflow-scrolling:touch;display:block}
-.auth-wrap{padding:calc(var(--safe-top) + 60px) 24px calc(var(--safe-bot) + 80px);max-width:420px;margin:0 auto;width:100%}
-.auth-submit-bar{position:fixed;bottom:0;left:0;right:0;padding:12px 24px calc(var(--safe-bot) + 12px);background:var(--bg);border-top:1px solid var(--border);z-index:20}
+#screen-login,#screen-register{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.auth-wrap{padding:calc(var(--safe-top) + 60px) 24px calc(var(--safe-bot) + 40px);max-width:420px;margin:0 auto;width:100%}
 .auth-back{position:fixed;top:calc(var(--safe-top) + 16px);left:16px;width:40px;height:40px;background:var(--bg3);border:none;border-radius:50%;color:var(--text);font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:10}
 .auth-title{font-size:28px;font-weight:800;margin-bottom:6px}
 .auth-sub{color:var(--muted);font-size:14px;margin-bottom:32px}
@@ -349,11 +348,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">
       Devam ederek <a href="/privacy" target="_blank" style="color:var(--accent)">Gizlilik Politikası</a>'nı kabul etmiş olursunuz. Bu uygulama yalnızca 18+ kullanıcılara yöneliktir.
     </div>
-    <div class="auth-link" style="margin-bottom:8px">Zaten hesabın var mı? <a href="#" onclick="showScreen('login');return false">Giriş Yap</a></div>
+    <button class="btn btn-primary" onclick="doRegister()" id="btn-do-register" style="margin-bottom:12px">Üye Ol</button>
+    <div class="auth-link">Zaten hesabın var mı? <a href="#" onclick="showScreen('login');return false">Giriş Yap</a></div>
   </div>
-</div>
-<div class="auth-submit-bar" id="register-submit-bar" style="display:none">
-  <button class="btn btn-primary" style="width:100%" onclick="doRegister()" id="btn-do-register">Üye Ol</button>
 </div>
 
 <!-- SETUP / ONBOARDING -->
@@ -692,8 +689,6 @@ let muted = false, camOff = false;
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + name).classList.add('active');
-  const bar = document.getElementById('register-submit-bar');
-  if (bar) bar.style.display = name === 'register' ? 'block' : 'none';
 }
 
 function showTab(name) {
@@ -1523,6 +1518,7 @@ function showLimitBanner() {
   const navProfile = document.getElementById('nav-profile');
   if (navProfile) navProfile.querySelector('.nav-label').textContent = t.profile;
 
+  showScreen('splash');
   if (token) await afterAuth();
 })();
 </script>
