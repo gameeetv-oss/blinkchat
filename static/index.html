@@ -1390,7 +1390,9 @@ async function startAppleIAP() {
     const pkg = offerings?.current?.availablePackages?.find(p => p.product.identifier === productId);
     if (!pkg) { showToast('Ürün bulunamadı'); return; }
     const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
-    const ent = customerInfo?.entitlements?.active?.['premium'];
+    // Check any active entitlement (vibe_pro, premium, pro, etc.)
+    const entitlements = customerInfo?.entitlements?.active || {};
+    const ent = entitlements['vibe_pro'] || entitlements['premium'] || entitlements['pro'] || Object.values(entitlements)[0];
     if (ent) {
       await api('/api/verify-apple-iap', {
         method: 'POST',
@@ -1414,7 +1416,8 @@ async function restorePurchase() {
   if (window.Capacitor?.isNativePlatform?.() && window.Purchases) {
     try {
       const { customerInfo } = await window.Purchases.restorePurchases();
-      if (customerInfo?.entitlements?.active?.['premium']) {
+      const activeEnts = customerInfo?.entitlements?.active || {};
+      if (Object.keys(activeEnts).length > 0) {
         await loadPremiumStatus(); closePremium(); showToast('Satın alım geri yüklendi ✓');
       } else { showToast('Aktif premium bulunamadı'); }
     } catch (e) { showToast('Geri yükleme başarısız'); }
