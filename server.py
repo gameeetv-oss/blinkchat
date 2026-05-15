@@ -1086,18 +1086,22 @@ async def keepalive():
 async def main():
     await init_db()
 
+    CORS_HEADERS = {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type,Authorization",
+    }
+
     @web.middleware
     async def cors_middleware(request, handler):
         if request.method == "OPTIONS":
-            return web.Response(headers={
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-                "Access-Control-Allow-Headers": "Content-Type,Authorization",
-            })
-        resp = await handler(request)
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-        resp.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-        resp.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+            return web.Response(status=204, headers=CORS_HEADERS)
+        try:
+            resp = await handler(request)
+        except web.HTTPException as e:
+            e.headers.update(CORS_HEADERS)
+            raise
+        resp.headers.update(CORS_HEADERS)
         return resp
 
     app = web.Application(client_max_size=5 * 1024 * 1024, middlewares=[cors_middleware])
