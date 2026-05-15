@@ -1086,7 +1086,21 @@ async def keepalive():
 async def main():
     await init_db()
 
-    app = web.Application(client_max_size=5 * 1024 * 1024)
+    @web.middleware
+    async def cors_middleware(request, handler):
+        if request.method == "OPTIONS":
+            return web.Response(headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type,Authorization",
+            })
+        resp = await handler(request)
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+        return resp
+
+    app = web.Application(client_max_size=5 * 1024 * 1024, middlewares=[cors_middleware])
 
     app.router.add_post("/api/register", register)
     app.router.add_post("/api/login", login)
@@ -1113,6 +1127,7 @@ async def main():
     app.router.add_put("/api/passport", set_passport)
     app.router.add_get("/privacy", privacy_policy)
     app.router.add_get("/ws", ws_handler)
+    app.router.add_route("OPTIONS", "/{path_info:.*}", lambda r: web.Response())
     app.router.add_get("/", index)
     app.router.add_get("/ping", ping)
     app.router.add_static("/icons", BASE / "static" / "icons")
