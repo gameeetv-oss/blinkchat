@@ -13,6 +13,10 @@ JWT_SECRET = os.getenv("JWT_SECRET", "vibe-secret-change-in-prod-2026")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@vibeapp.co")
 APP_URL = os.getenv("APP_URL", "https://blinkchat-k69c.onrender.com")
+WHOP_API_KEY = os.getenv("WHOP_API_KEY", "")
+WHOP_WEBHOOK_SECRET = os.getenv("WHOP_WEBHOOK_SECRET", "")
+WHOP_PLAN_ID = os.getenv("WHOP_PLAN_ID", "")   # plan_xxxxxx
+FREE_DAILY_LIKES = 15
 
 # WebRTC signaling: matched users only
 rooms = {}         # room_id -> [ws1, ws2]
@@ -78,6 +82,20 @@ async def init_db():
                 token TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
                 expires_at REAL NOT NULL
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS premium (
+                user_id TEXT PRIMARY KEY,
+                expires_at REAL NOT NULL,
+                source TEXT DEFAULT 'whop'
+            )
+        """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS daily_likes (
+                user_id TEXT PRIMARY KEY,
+                count INTEGER DEFAULT 0,
+                date TEXT NOT NULL
             )
         """)
         await db.commit()
@@ -526,6 +544,177 @@ async def discover(request):
     return web.json_response(results[:20])
 
 
+# ── PREMIUM HELPERS ───────────────────────────────────────
+
+async def is_premium(uid: str) -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT expires_at FROM premium WHERE user_id=?", (uid,)
+        ) as cur:
+            row = await cur.fetchone()
+    return bool(row and row[0] > time.time())
+
+
+async def get_likes_today(uid: str) -> int:
+    today = time.strftime("%Y-%m-%d")
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT count, date FROM daily_likes WHERE user_id=?", (uid,)
+        ) as cur:
+            row = await cur.fetchone()
+    if not row or row[1] != today:
+        return 0
+    return row[0]
+
+
+async def increment_likes_today(uid: str):
+    today = time.strftime("%Y-%m-%d")
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute(
+            "SELECT count, date FROM daily_likes WHERE user_id=?", (uid,)
+        ) as cur:
+            row = await cur.fetchone()
+        if not row or row[1] != today:
+            await db.execute(
+                "INSERT OR REPLACE INTO daily_likes (user_id, count, date) VALUES (?,1,?)",
+                (uid, today)
+            )
+        else:
+            await db.execute(
+                "UPDATE daily_likes SET count=count+1 WHERE user_id=?", (uid,)
+            )
+        await db.commit()
+
+
+async def grant_premium(email: str, days: int, source: str = "whop") -> bool:
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT id FROM users WHERE email=?", (email.lower(),)) as cur:
+            row = await cur.fetchone()
+        if not row:
+            return False
+        uid = row[0]
+        expires = time.time() + days * 86400
+        await db.execute(
+            "INSERT OR REPLACE INTO premium (user_id, expires_at, source) VALUES (?,?,?)",
+            (uid, expires, source)
+        )
+        await db.commit()
+    return True
+
+
+# ── API: PREMIUM ───────────────────────────────────────────
+
+@require_auth
+async def get_premium_status(request):
+    uid = request["uid"]
+    premium = await is_premium(uid)
+    likes_today = await get_likes_today(uid)
+    remaining = None if premium else max(0, FREE_DAILY_LIKES - likes_today)
+    return web.json_response({
+        "is_premium": premium,
+        "likes_remaining": remaining,   # None = unlimited
+        "free_limit": FREE_DAILY_LIKES,
+    })
+
+
+@require_auth
+async def who_liked_me(request):
+    uid = request["uid"]
+    if not await is_premium(uid):
+        return web.json_response({"error": "premium_required"}, status=403)
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute("""
+            SELECT u.id, u.name, u.age, u.gender, u.city, u.photo_b64, u.mode
+            FROM users u
+            JOIN likes l ON l.from_id = u.id
+            WHERE l.to_id = ?
+              AND u.id NOT IN (SELECT to_id FROM likes WHERE from_id = ?)
+              AND u.id NOT IN (SELECT to_id FROM passes WHERE from_id = ?)
+            ORDER BY l.created_at DESC LIMIT 50
+        """, (uid, uid, uid)) as cur:
+            rows = await cur.fetchall()
+
+    return web.json_response([{
+        "id": r["id"], "name": r["name"], "age": r["age"],
+        "gender": r["gender"], "city": r["city"] or "",
+        "photo_b64": r["photo_b64"] or "", "mode": r["mode"]
+    } for r in rows])
+
+
+# ── WEBHOOK: WHOP ──────────────────────────────────────────
+
+async def whop_webhook(request):
+    import hmac, hashlib
+    body = await request.read()
+
+    if WHOP_WEBHOOK_SECRET:
+        sig = request.headers.get("x-whop-signature", "")
+        expected = hmac.new(WHOP_WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected):
+            return web.Response(status=401)
+
+    try:
+        data = json.loads(body)
+    except Exception:
+        return web.Response(status=400)
+
+    event = data.get("event") or data.get("action", "")
+    membership = data.get("data", {})
+
+    if event in ("membership.went_valid", "membership.created", "payment.succeeded"):
+        email = (membership.get("user", {}) or {}).get("email", "")
+        if not email:
+            email = membership.get("email", "")
+        if email:
+            await grant_premium(email, days=31, source="whop")
+            logging.info(f"[WHOP] Premium granted: {email}")
+
+    elif event in ("membership.went_invalid", "membership.expired"):
+        email = (membership.get("user", {}) or {}).get("email", "")
+        if email:
+            async with aiosqlite.connect(DB_PATH) as db:
+                async with db.execute("SELECT id FROM users WHERE email=?", (email.lower(),)) as cur:
+                    row = await cur.fetchone()
+                if row:
+                    await db.execute("DELETE FROM premium WHERE user_id=?", (row[0],))
+                    await db.commit()
+
+    return web.Response(text="ok")
+
+
+@require_auth
+async def verify_apple_iap(request):
+    """iOS: RevenueCat server-to-server verification."""
+    uid = request["uid"]
+    try:
+        d = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+
+    # RevenueCat sends entitlements after verifying receipt with Apple
+    # Frontend calls this after successful purchase via @revenuecat/purchases-capacitor
+    rc_user_id = d.get("rc_user_id", "")
+    product_id = d.get("product_id", "")
+    expires_date = d.get("expires_date")  # Unix timestamp ms
+
+    if not rc_user_id or not product_id:
+        return web.json_response({"error": "Eksik veri"}, status=400)
+
+    days = 366 if "annual" in product_id.lower() or "yearly" in product_id.lower() else 32
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        expires = (expires_date / 1000) if expires_date else (time.time() + days * 86400)
+        await db.execute(
+            "INSERT OR REPLACE INTO premium (user_id, expires_at, source) VALUES (?,?,?)",
+            (uid, expires, "apple_iap")
+        )
+        await db.commit()
+
+    return web.json_response({"ok": True, "is_premium": True})
+
+
 # ── API: LIKE / PASS ──────────────────────────────────────
 
 @require_auth
@@ -535,6 +724,14 @@ async def like_user(request):
 
     if uid == target_id:
         return web.json_response({"error": "Kendini beğenemezsin"}, status=400)
+
+    # Daily like limit for free users
+    if not await is_premium(uid):
+        likes_today = await get_likes_today(uid)
+        if likes_today >= FREE_DAILY_LIKES:
+            return web.json_response({"error": "limit_reached", "limit": FREE_DAILY_LIKES}, status=429)
+
+    await increment_likes_today(uid)
 
     async with aiosqlite.connect(DB_PATH) as db:
         db.row_factory = aiosqlite.Row
@@ -736,6 +933,10 @@ async def main():
     app.router.add_post("/api/forgot-password", forgot_password)
     app.router.add_get("/reset", reset_password_page)
     app.router.add_post("/api/reset-password", do_reset_password)
+    app.router.add_get("/api/premium-status", get_premium_status)
+    app.router.add_get("/api/who-liked-me", who_liked_me)
+    app.router.add_post("/api/verify-apple-iap", verify_apple_iap)
+    app.router.add_post("/webhooks/whop", whop_webhook)
     app.router.add_get("/api/me", get_me)
     app.router.add_put("/api/profile", update_profile)
     app.router.add_post("/api/voice", upload_voice)

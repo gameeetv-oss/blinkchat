@@ -218,6 +218,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .hidden{display:none!important}
+
+/* PREMIUM MODAL */
+.premium-modal{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;align-items:flex-end;justify-content:center;z-index:120;backdrop-filter:blur(10px)}
+.premium-modal.show{display:flex}
+.premium-sheet{background:var(--bg2);border-radius:28px 28px 0 0;width:100%;max-width:480px;padding:32px 24px calc(32px + var(--safe-bot));animation:slide-up .35s cubic-bezier(.34,1.1,.64,1)}
+@keyframes slide-up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.premium-crown{font-size:52px;text-align:center;margin-bottom:4px}
+.premium-title{font-size:26px;font-weight:900;text-align:center;background:linear-gradient(135deg,#ffd700,#ff8c00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px}
+.premium-sub{text-align:center;color:var(--muted);font-size:14px;margin-bottom:24px}
+.premium-features{display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.pf-row{display:flex;align-items:center;gap:12px;font-size:15px}
+.pf-icon{font-size:22px;width:32px;text-align:center;flex-shrink:0}
+.pf-text strong{display:block;font-weight:700}
+.pf-text span{font-size:13px;color:var(--muted)}
+.premium-price-row{display:flex;gap:10px;margin-bottom:16px}
+.price-card{flex:1;background:var(--bg3);border:2px solid var(--border);border-radius:16px;padding:14px 12px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.price-card.active{border-color:#ffd700;background:#1a1500}
+.price-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#ffd700;color:#000;font-size:11px;font-weight:800;padding:2px 10px;border-radius:20px;white-space:nowrap}
+.price-period{font-size:12px;color:var(--muted);margin-bottom:4px}
+.price-amount{font-size:22px;font-weight:900}
+.price-sub{font-size:11px;color:var(--muted)}
+.btn-premium{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-weight:900;border:none;width:100%;padding:16px;border-radius:14px;font-size:17px;cursor:pointer;margin-bottom:10px}
+.btn-premium:active{opacity:.85}
+.premium-restore{text-align:center;font-size:13px;color:var(--muted);cursor:pointer;padding:8px}
+.limit-banner{background:linear-gradient(135deg,#1a0f00,#2a1800);border:1.5px solid #ffd700;border-radius:16px;padding:16px;margin:12px 0;text-align:center}
+.limit-banner h4{color:#ffd700;font-size:15px;margin-bottom:4px}
+.limit-banner p{color:var(--muted);font-size:13px;margin-bottom:12px}
+.crown-badge{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-size:11px;font-weight:800;padding:2px 8px;border-radius:20px;margin-left:6px}
 </style>
 </head>
 <body>
@@ -388,14 +416,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div id="screen-app" class="screen">
   <div class="app-header">
     <span class="app-logo">Vibe</span>
+    <button onclick="showPremium()" id="premium-header-btn" style="background:linear-gradient(135deg,#ffd700,#ff8c00);border:none;border-radius:20px;padding:6px 14px;font-size:13px;font-weight:800;color:#000;cursor:pointer">👑 Premium</button>
   </div>
   <div class="tab-content">
     <div id="tab-discover" class="tab active">
       <div id="discover-inner" style="width:100%;max-width:380px;margin:0 auto"></div>
     </div>
     <div id="tab-matches" class="tab">
-      <h2 class="matches-title">❤️ Eşleşmelerim</h2>
-      <div id="matches-list" class="matches-list"></div>
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg)">
+        <button id="mtab-matches" onclick="switchMatchTab('matches')" style="flex:1;padding:14px;background:none;border:none;color:var(--text);font-size:14px;font-weight:700;border-bottom:2px solid var(--accent);cursor:pointer">❤️ Eşleşmeler</button>
+        <button id="mtab-liked" onclick="switchMatchTab('liked')" style="flex:1;padding:14px;background:none;border:none;color:var(--muted);font-size:14px;font-weight:600;border-bottom:2px solid transparent;cursor:pointer">👀 Seni Beğenenler</button>
+      </div>
+      <div id="matches-list" class="matches-list" style="padding:16px"></div>
+      <div id="liked-list" style="padding:16px;display:none"></div>
     </div>
     <div id="tab-profile" class="tab">
       <div class="profile-header">
@@ -479,6 +512,36 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <button class="call-ctrl-btn call-ctrl-end" onclick="endCall()">📵</button>
       <button class="call-ctrl-btn" id="btn-cam" onclick="toggleCam()">📷</button>
     </div>
+  </div>
+</div>
+
+<!-- PREMIUM MODAL -->
+<div id="premium-modal" class="premium-modal" onclick="if(event.target===this)closePremium()">
+  <div class="premium-sheet">
+    <div class="premium-crown">👑</div>
+    <div class="premium-title">Vibe Premium</div>
+    <div class="premium-sub">Sınırsız bağlantı, sınırsız his</div>
+    <div class="premium-features">
+      <div class="pf-row"><span class="pf-icon">❤️</span><div class="pf-text"><strong>Sınırsız Beğeni</strong><span>Ücretsiz: günde 15 beğeni</span></div></div>
+      <div class="pf-row"><span class="pf-icon">👀</span><div class="pf-text"><strong>Seni Beğenenleri Gör</strong><span>Kim beğendi, önceden keşfet</span></div></div>
+      <div class="pf-row"><span class="pf-icon">⭐</span><div class="pf-text"><strong>5 Süper Beğeni/Gün</strong><span>Öne çık, dikkat çek</span></div></div>
+      <div class="pf-row"><span class="pf-icon">↩️</span><div class="pf-text"><strong>Son Geçişi Geri Al</strong><span>Yanlışlıkla geçtiysen düzelt</span></div></div>
+    </div>
+    <div class="premium-price-row">
+      <div class="price-card active" id="plan-monthly" onclick="selectPlan('monthly')">
+        <div class="price-period">AYLIK</div>
+        <div class="price-amount">₺99</div>
+        <div class="price-sub">/ ay</div>
+      </div>
+      <div class="price-card" id="plan-yearly" onclick="selectPlan('yearly')">
+        <div class="price-badge">%50 UCUZ</div>
+        <div class="price-period">YILLIK</div>
+        <div class="price-amount">₺599</div>
+        <div class="price-sub">≈ ₺50/ay</div>
+      </div>
+    </div>
+    <button class="btn-premium" onclick="startPurchase()">Premium'a Geç 🚀</button>
+    <div class="premium-restore" onclick="restorePurchase()">Satın alımı geri yükle</div>
   </div>
 </div>
 
@@ -820,6 +883,7 @@ async function enterApp() {
   const { ok, data } = await api('/api/me');
   if (ok) myProfile = data;
   showScreen('app');
+  loadPremiumStatus();
   await loadDiscover();
 }
 
@@ -898,6 +962,7 @@ async function swipeLike() {
   currentCardIdx++;
   renderCurrentCard();
   const { ok, data } = await api('/api/like/' + card.id, { method: 'POST' });
+  if (!ok && data.error === 'limit_reached') { showLimitBanner(); return; }
   if (ok && data.matched) { pendingMatchCard = card; showMatchOverlay(card); }
 }
 
@@ -1095,6 +1160,146 @@ function endCall() {
   });
   muted = false; camOff = false;
   showScreen('app');
+}
+
+// ── PREMIUM ───────────────────────────────────────────────
+
+let premiumStatus = { is_premium: false, likes_remaining: 15 };
+let selectedPlan = 'monthly';
+const WHOP_LINKS = {
+  monthly: 'https://whop.com/vibe-app/',
+  yearly:  'https://whop.com/vibe-app/'
+};
+
+async function loadPremiumStatus() {
+  const { ok, data } = await api('/api/premium-status');
+  if (ok) { premiumStatus = data; updatePremiumUI(); }
+}
+
+function updatePremiumUI() {
+  const btn = document.getElementById('premium-header-btn');
+  if (premiumStatus.is_premium) {
+    btn.textContent = '👑 Aktif';
+    btn.style.background = 'linear-gradient(135deg,#ffd700,#ff8c00)';
+  }
+}
+
+function showPremium() { document.getElementById('premium-modal').classList.add('show'); }
+function closePremium() { document.getElementById('premium-modal').classList.remove('show'); }
+
+function selectPlan(plan) {
+  selectedPlan = plan;
+  document.getElementById('plan-monthly').classList.toggle('active', plan === 'monthly');
+  document.getElementById('plan-yearly').classList.toggle('active', plan === 'yearly');
+}
+
+async function startPurchase() {
+  const isNative = window.Capacitor?.isNativePlatform?.();
+  if (isNative) {
+    await startAppleIAP();
+  } else {
+    const email = myProfile?.email || '';
+    const url = WHOP_LINKS[selectedPlan] + (email ? `?email=${encodeURIComponent(email)}` : '');
+    window.open(url, '_blank');
+    showToast('Ödeme sayfası açıldı. Tamamladıktan sonra geri dön.');
+    closePremium();
+    setTimeout(() => loadPremiumStatus(), 10000);
+  }
+}
+
+async function startAppleIAP() {
+  try {
+    const { Purchases } = window;
+    if (!Purchases) { showToast('Satın alma yüklenemedi'); return; }
+    const productId = selectedPlan === 'yearly'
+      ? 'com.blinkchat.app.premium.yearly'
+      : 'com.blinkchat.app.premium.monthly';
+    const offerings = await Purchases.getOfferings();
+    const pkg = offerings?.current?.availablePackages?.find(p => p.product.identifier === productId);
+    if (!pkg) { showToast('Ürün bulunamadı'); return; }
+    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+    const ent = customerInfo?.entitlements?.active?.['premium'];
+    if (ent) {
+      await api('/api/verify-apple-iap', {
+        method: 'POST',
+        body: JSON.stringify({
+          rc_user_id: customerInfo.originalAppUserId,
+          product_id: productId,
+          expires_date: ent.expirationDate ? new Date(ent.expirationDate).getTime() : null
+        })
+      });
+      premiumStatus.is_premium = true;
+      updatePremiumUI();
+      closePremium();
+      showToast('🎉 Premium aktif!');
+    }
+  } catch (e) {
+    if (e?.code !== 'PURCHASE_CANCELLED') showToast('Satın alma başarısız');
+  }
+}
+
+async function restorePurchase() {
+  if (window.Capacitor?.isNativePlatform?.() && window.Purchases) {
+    try {
+      const { customerInfo } = await window.Purchases.restorePurchases();
+      if (customerInfo?.entitlements?.active?.['premium']) {
+        await loadPremiumStatus(); closePremium(); showToast('Satın alım geri yüklendi ✓');
+      } else { showToast('Aktif premium bulunamadı'); }
+    } catch (e) { showToast('Geri yükleme başarısız'); }
+  } else {
+    await loadPremiumStatus();
+    if (premiumStatus.is_premium) { closePremium(); showToast('Premium aktif ✓'); }
+    else showToast('Aktif premium bulunamadı');
+  }
+}
+
+// ── MATCH TAB SWITCH ──────────────────────────────────────
+
+function switchMatchTab(tab) {
+  const isMatches = tab === 'matches';
+  document.getElementById('matches-list').style.display = isMatches ? 'flex' : 'none';
+  document.getElementById('liked-list').style.display = isMatches ? 'none' : 'block';
+  document.getElementById('mtab-matches').style.cssText += `;color:${isMatches ? 'var(--text)' : 'var(--muted)'};border-bottom-color:${isMatches ? 'var(--accent)' : 'transparent'}`;
+  document.getElementById('mtab-liked').style.cssText += `;color:${isMatches ? 'var(--muted)' : 'var(--text)'};border-bottom-color:${isMatches ? 'transparent' : 'var(--accent)'}`;
+  if (!isMatches) loadWhoLikedMe();
+}
+
+async function loadWhoLikedMe() {
+  const list = document.getElementById('liked-list');
+  const { ok, data, status } = await api('/api/who-liked-me');
+  if (status === 403) {
+    list.innerHTML = `<div style="text-align:center;padding:40px 24px">
+      <div style="font-size:56px;margin-bottom:12px">👀</div>
+      <h3 style="margin-bottom:8px">Seni Beğenenleri Gör</h3>
+      <p style="color:var(--muted);font-size:14px;margin-bottom:20px">Bu özellik Premium kullanıcılara özel</p>
+      <button onclick="showPremium()" style="background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-weight:800;border:none;border-radius:12px;padding:12px 24px;cursor:pointer;font-size:15px">👑 Premium'a Geç</button>
+    </div>`;
+    return;
+  }
+  if (!ok || !data.length) {
+    list.innerHTML = `<div style="text-align:center;padding:40px 24px;color:var(--muted)"><div style="font-size:48px;margin-bottom:12px">🙈</div><p>Henüz seni beğenen yok</p></div>`;
+    return;
+  }
+  list.innerHTML = data.map(m => `
+    <div class="match-item" style="margin-bottom:10px">
+      <div class="match-avatar-sm">${m.photo_b64 ? `<img src="${m.photo_b64}">` : (m.gender === 'female' ? '👩' : '👨')}</div>
+      <div class="match-info"><div class="match-name">${m.name}, ${m.age}</div><div class="match-detail">${m.city || ''}</div></div>
+      <button class="match-call-btn" onclick="swipeLikeById('${m.id}')">❤️ Beğen</button>
+    </div>`).join('');
+}
+
+async function swipeLikeById(targetId) {
+  const { ok, data } = await api('/api/like/' + targetId, { method: 'POST' });
+  if (!ok && data.error === 'limit_reached') { showLimitBanner(); return; }
+  if (ok) { showToast(data.matched ? '🎉 Eşleştin!' : 'Beğeni gönderildi ✓'); loadWhoLikedMe(); }
+}
+
+function showLimitBanner() {
+  document.getElementById('discover-inner').innerHTML = `<div class="limit-banner" style="max-width:380px;width:100%">
+    <h4>🔥 Günlük limite ulaştın</h4>
+    <p>Ücretsiz planda günde ${premiumStatus.free_limit || 15} beğeni hakkın var.</p>
+    <button onclick="showPremium()" style="background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-weight:800;border:none;border-radius:12px;padding:12px 24px;cursor:pointer;font-size:15px;margin-top:4px">👑 Premium'a Geç</button>
+  </div>`;
 }
 
 // ── INIT ──────────────────────────────────────────
