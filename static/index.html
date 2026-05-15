@@ -214,7 +214,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 /* TOAST / LOADING */
 .toast{position:fixed;bottom:calc(var(--safe-bot) + 90px);left:50%;transform:translateX(-50%) translateY(20px);background:rgba(30,30,48,.95);color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;z-index:200;backdrop-filter:blur(8px)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.loading-overlay{position:fixed;inset:0;background:rgba(13,13,20,.8);display:none;align-items:center;justify-content:center;z-index:150;backdrop-filter:blur(4px)}
+.loading-overlay{position:fixed;inset:0;background:rgba(13,13,20,.8);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:150;backdrop-filter:blur(4px)}
 .loading-overlay.show{display:flex}
 .spinner{width:48px;height:48px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -581,7 +581,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 
 <!-- TOAST / LOADING -->
 <div id="toast" class="toast"></div>
-<div id="loading" class="loading-overlay"><div class="spinner"></div></div>
+<div id="loading" class="loading-overlay"><div class="spinner"></div><div id="loading-msg" style="color:var(--muted);font-size:13px;margin-top:16px;text-align:center;max-width:200px"></div></div>
 
 <script>
 // RevenueCat via Capacitor native bridge
@@ -713,8 +713,17 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2800);
 }
 
+let _loadingTimer = null;
 function showLoading(v) {
   document.getElementById('loading').classList.toggle('show', v);
+  const msg = document.getElementById('loading-msg');
+  if (v) {
+    msg.textContent = '';
+    _loadingTimer = setTimeout(() => { msg.textContent = 'Sunucu başlatılıyor, lütfen bekleyin...'; }, 5000);
+  } else {
+    clearTimeout(_loadingTimer);
+    msg.textContent = '';
+  }
 }
 
 function showError(id, msg) {
