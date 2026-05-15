@@ -1519,6 +1519,8 @@ function showLimitBanner() {
   if (navProfile) navProfile.querySelector('.nav-label').textContent = t.profile;
 
   showScreen('splash');
+  // Sunucuyu uyandır (Render free tier cold start)
+  fetch(API + '/ping').catch(() => {});
   if (token) await afterAuth();
 })();
 </script>
