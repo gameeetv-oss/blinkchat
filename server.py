@@ -831,6 +831,56 @@ async def block_user(request):
     return web.json_response({"ok": True})
 
 
+@require_auth
+async def delete_account(request):
+    uid = request["uid"]
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM users WHERE id=?", (uid,))
+        await db.execute("DELETE FROM likes WHERE from_id=? OR to_id=?", (uid, uid))
+        await db.execute("DELETE FROM passes WHERE from_id=? OR to_id=?", (uid, uid))
+        await db.execute("DELETE FROM blocks WHERE from_id=? OR to_id=?", (uid, uid))
+        await db.execute("DELETE FROM reports WHERE from_id=? OR to_id=?", (uid, uid))
+        await db.execute("DELETE FROM premium WHERE user_id=?", (uid,))
+        await db.execute("DELETE FROM daily_likes WHERE user_id=?", (uid,))
+        await db.commit()
+    return web.json_response({"ok": True})
+
+
+async def privacy_policy(request):
+    html = """<!DOCTYPE html><html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vibe – Privacy Policy</title>
+<style>body{font-family:-apple-system,sans-serif;max-width:720px;margin:0 auto;padding:24px;color:#333;line-height:1.7}h1{color:#e94560}h2{margin-top:32px}a{color:#e94560}</style>
+</head><body>
+<h1>Vibe – Privacy Policy</h1>
+<p><em>Last updated: May 2026</em></p>
+<p>Vibe ("we", "us") is a voice-first dating and friendship app. This policy explains how we collect and use your data.</p>
+<h2>1. Age Requirement</h2>
+<p>Vibe is strictly for users 18 years of age or older. By registering, you confirm you are at least 18. We do not knowingly collect data from anyone under 18. If we discover an underage account, it will be immediately deleted.</p>
+<h2>2. Data We Collect</h2>
+<ul>
+<li>Name, age, gender, email address</li>
+<li>City, interests, profile photo, voice clip (30 seconds)</li>
+<li>Like/pass interactions and match history</li>
+</ul>
+<h2>3. How We Use Your Data</h2>
+<ul>
+<li>To show your profile to potential matches</li>
+<li>To send password reset emails</li>
+<li>To manage premium subscriptions</li>
+</ul>
+<h2>4. Data Sharing</h2>
+<p>We do not sell your personal data. We share data only with: Apple (in-app purchases via RevenueCat), Resend (transactional email only).</p>
+<h2>5. Data Retention & Deletion</h2>
+<p>You can delete your account at any time from the Profile tab. All your data is permanently deleted within 30 days.</p>
+<h2>6. Safety</h2>
+<p>Users can block and report other users at any time. We review all reports and take appropriate action.</p>
+<h2>7. Contact</h2>
+<p>For privacy questions or data deletion requests: <a href="mailto:support@vibeapp.co">support@vibeapp.co</a></p>
+</body></html>"""
+    return web.Response(text=html, content_type="text/html")
+
+
 # ── WEBSOCKET: VIDEO CALL SIGNALING ───────────────────────
 
 async def ws_handler(request):
@@ -948,6 +998,8 @@ async def main():
     app.router.add_get("/api/matches", get_matches)
     app.router.add_post("/api/report/{target_id}", report_user)
     app.router.add_post("/api/block/{target_id}", block_user)
+    app.router.add_delete("/api/account", delete_account)
+    app.router.add_get("/privacy", privacy_policy)
     app.router.add_get("/ws", ws_handler)
     app.router.add_get("/", index)
     app.router.add_get("/ping", ping)

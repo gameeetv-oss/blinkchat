@@ -310,8 +310,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <input id="reg-name" class="input" type="text" placeholder="Adın" autocomplete="given-name" maxlength="30">
     </div>
     <div class="input-group">
-      <label class="input-label">YAŞ</label>
-      <input id="reg-age" class="input" type="number" placeholder="25" min="18" max="99">
+      <label class="input-label">DOĞUM TARİHİ</label>
+      <input id="reg-birth" class="input" type="date" autocomplete="bday">
     </div>
     <div class="input-group">
       <label class="input-label">CİNSİYET</label>
@@ -328,6 +328,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="input-group">
       <label class="input-label">ŞİFRE</label>
       <input id="reg-pw" class="input" type="password" placeholder="En az 6 karakter" autocomplete="new-password">
+    </div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.5">
+      Devam ederek <a href="/privacy" target="_blank" style="color:var(--accent)">Gizlilik Politikası</a>'nı kabul etmiş olursunuz. Bu uygulama yalnızca 18+ kullanıcılara yöneliktir.
     </div>
     <button class="btn btn-primary" onclick="doRegister()">Devam Et →</button>
     <div class="auth-link">Zaten hesabın var mı? <a href="#" onclick="showScreen('login');return false">Giriş Yap</a></div>
@@ -460,7 +463,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="profile-chips" id="profile-interests-chips"></div>
       </div>
       <input type="file" id="profile-photo-input" accept="image/*" style="display:none" onchange="handleProfilePhotoChange(event)">
+      <div class="profile-section">
+        <h4>Destek</h4>
+        <div class="profile-row">
+          <span class="profile-row-label">📧 İletişim</span>
+          <a href="mailto:support@vibeapp.co" style="color:var(--accent);font-size:14px">support@vibeapp.co</a>
+        </div>
+        <div class="profile-row" onclick="window.open('/privacy','_blank')" style="cursor:pointer">
+          <span class="profile-row-label">🔒 Gizlilik Politikası</span>
+          <span style="color:var(--accent);font-size:14px">→</span>
+        </div>
+      </div>
       <button class="logout-btn" onclick="doLogout()">Çıkış Yap</button>
+      <button class="logout-btn" style="background:#2a0a0a;color:#ff6b6b;border:1px solid #5a1020;margin-top:8px" onclick="confirmDeleteAccount()">Hesabı Sil</button>
       <div style="height:20px"></div>
     </div>
   </div>
@@ -530,14 +545,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
     <div class="premium-price-row">
       <div class="price-card active" id="plan-monthly" onclick="selectPlan('monthly')">
         <div class="price-period">AYLIK</div>
-        <div class="price-amount">₺99</div>
+        <div class="price-amount">$4.99</div>
         <div class="price-sub">/ ay</div>
       </div>
       <div class="price-card" id="plan-yearly" onclick="selectPlan('yearly')">
-        <div class="price-badge">%50 UCUZ</div>
+        <div class="price-badge">%33 UCUZ</div>
         <div class="price-period">YILLIK</div>
-        <div class="price-amount">₺599</div>
-        <div class="price-sub">≈ ₺50/ay</div>
+        <div class="price-amount">$39.99</div>
+        <div class="price-sub">≈ $3.33/ay</div>
       </div>
     </div>
     <button class="btn-premium" onclick="startPurchase()">Premium'a Geç 🚀</button>
@@ -549,6 +564,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <div id="toast" class="toast"></div>
 <div id="loading" class="loading-overlay"><div class="spinner"></div></div>
 
+<script>
+// RevenueCat via Capacitor native bridge
+window.addEventListener('load', async () => {
+  if (window.Capacitor?.isNativePlatform?.()) {
+    try {
+      const RC = window.Capacitor.Plugins.Purchases;
+      if (RC) {
+        await RC.configure({ apiKey: 'appl_ZPjviLsJobEblVToROqABLaVlVP' });
+        window.Purchases = RC;
+      }
+    } catch(e) {}
+  }
+});
+</script>
 <script>
 const API = (() => {
   if (window.location.protocol === 'capacitor:' ||
@@ -665,9 +694,19 @@ async function doForgotPassword() {
 async function doRegister() {
   hideError('reg-error');
   const name = document.getElementById('reg-name').value.trim();
-  const age = parseInt(document.getElementById('reg-age').value);
+  const birthVal = document.getElementById('reg-birth').value;
   const email = document.getElementById('reg-email').value.trim();
   const pw = document.getElementById('reg-pw').value;
+
+  if (!birthVal) return showError('reg-error', 'Doğum tarihini gir');
+  const birth = new Date(birthVal);
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+  if (age < 18) return showError('reg-error', 'Bu uygulama yalnızca 18+ kullanıcılara yöneliktir');
+  if (age > 99) return showError('reg-error', 'Geçerli bir doğum tarihi gir');
+
   showLoading(true);
   const { ok, data } = await api('/api/register', {
     method: 'POST', body: JSON.stringify({ name, age, gender: selectedGender, email, password: pw })
@@ -679,6 +718,15 @@ async function doRegister() {
   myProfile = null;
   initSetup();
   showScreen('setup');
+}
+
+async function confirmDeleteAccount() {
+  if (!confirm('Hesabını kalıcı olarak silmek istediğinden emin misin? Tüm veriler silinecek.')) return;
+  showLoading(true);
+  await api('/api/account', { method: 'DELETE' });
+  showLoading(false);
+  doLogout();
+  showToast('Hesabın silindi.');
 }
 
 async function afterAuth() {
@@ -1305,6 +1353,12 @@ function showLimitBanner() {
 // ── INIT ──────────────────────────────────────────
 
 (async () => {
+  // Set max birthdate to 18 years ago
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() - 18);
+  const el = document.getElementById('reg-birth');
+  if (el) el.max = maxDate.toISOString().split('T')[0];
+
   if (token) await afterAuth();
 })();
 </script>
