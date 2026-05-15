@@ -733,9 +733,18 @@ function hideError(id) {
 async function api(path, opts = {}) {
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
   if (token) headers['Authorization'] = 'Bearer ' + token;
-  const res = await fetch(API + path, { ...opts, headers });
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, status: res.status, data };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20000);
+  try {
+    const res = await fetch(API + path, { ...opts, headers, signal: controller.signal });
+    clearTimeout(timer);
+    const data = await res.json().catch(() => ({}));
+    return { ok: res.ok, status: res.status, data };
+  } catch (e) {
+    clearTimeout(timer);
+    const msg = e.name === 'AbortError' ? 'Bağlantı zaman aşımına uğradı, tekrar dene' : 'Bağlantı hatası: ' + (e.message || 'Sunucuya ulaşılamıyor');
+    return { ok: false, status: 0, data: { error: msg } };
+  }
 }
 
 // ── AUTH ──────────────────────────────────────────
