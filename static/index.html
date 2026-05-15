@@ -1384,17 +1384,7 @@ function selectPlan(plan) {
 }
 
 async function startPurchase() {
-  const isNative = window.Capacitor?.isNativePlatform?.();
-  if (isNative) {
-    await startAppleIAP();
-  } else {
-    const email = myProfile?.email || '';
-    const url = WHOP_LINKS[selectedPlan] + (email ? `?email=${encodeURIComponent(email)}` : '');
-    window.open(url, '_blank');
-    showToast('Ödeme sayfası açıldı. Tamamladıktan sonra geri dön.');
-    closePremium();
-    setTimeout(() => loadPremiumStatus(), 10000);
-  }
+  await startAppleIAP();
 }
 
 async function startAppleIAP() {
