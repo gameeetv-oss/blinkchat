@@ -98,6 +98,20 @@ async def init_db():
                 date TEXT NOT NULL
             )
         """)
+        # Add new columns if they don't exist
+        for col_sql in [
+            "ALTER TABLE users ADD COLUMN lat REAL DEFAULT NULL",
+            "ALTER TABLE users ADD COLUMN lng REAL DEFAULT NULL",
+            "ALTER TABLE users ADD COLUMN orientation TEXT DEFAULT 'straight'",
+            "ALTER TABLE users ADD COLUMN looking_for TEXT DEFAULT 'opposite'",
+            "ALTER TABLE users ADD COLUMN passport_lat REAL DEFAULT NULL",
+            "ALTER TABLE users ADD COLUMN passport_lng REAL DEFAULT NULL",
+            "ALTER TABLE users ADD COLUMN country TEXT DEFAULT ''",
+        ]:
+            try:
+                await db.execute(col_sql)
+            except Exception:
+                pass
         await db.commit()
 
 
@@ -161,6 +175,42 @@ async def send_email(to: str, subject: str, html: str) -> bool:
         return False
 
 
+import math
+
+def _default_looking_for(gender: str, orientation: str) -> str:
+    if orientation == "gay":
+        return "men" if gender == "male" else "women"
+    if orientation == "bisexual":
+        return "both"
+    # straight / other
+    if gender == "male":
+        return "women"
+    if gender == "female":
+        return "men"
+    return "both"
+
+def _haversine(lat1, lng1, lat2, lng2):
+    R = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlng = math.radians(lng2 - lng1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng/2)**2
+    return R * 2 * math.asin(math.sqrt(a))
+
+def _matches_looking_for(me, them) -> bool:
+    my_lf = me["looking_for"] or "both"
+    their_lf = them["looking_for"] or "both"
+    my_gender = me["gender"]
+    their_gender = them["gender"]
+
+    def wants(lf, gender):
+        if lf == "both": return True
+        if lf == "men": return gender == "male"
+        if lf == "women": return gender == "female"
+        return True
+
+    return wants(my_lf, their_gender) and wants(their_lf, my_gender)
+
+
 # ── API: AUTH ─────────────────────────────────────────────
 
 async def register(request):
@@ -174,6 +224,8 @@ async def register(request):
     name = str(d.get("name", "")).strip()
     age = d.get("age")
     gender = str(d.get("gender", "")).strip()
+    orientation = str(d.get("orientation", "straight")).strip()
+    looking_for = str(d.get("looking_for", "opposite")).strip()
 
     if not email or not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         return web.json_response({"error": "Geçerli bir email gir"}, status=400)
@@ -185,6 +237,10 @@ async def register(request):
         return web.json_response({"error": "Yaş 18-99 arasında olmalı"}, status=400)
     if gender not in ("male", "female", "other"):
         return web.json_response({"error": "Cinsiyet seçilmeli"}, status=400)
+    if orientation not in ("straight", "gay", "bisexual", "other"):
+        orientation = "straight"
+    if looking_for not in ("men", "women", "both"):
+        looking_for = _default_looking_for(gender, orientation)
 
     uid = str(uuid.uuid4())
     pw_hash = hash_pw(password)
@@ -192,8 +248,8 @@ async def register(request):
     try:
         async with aiosqlite.connect(DB_PATH) as db:
             await db.execute(
-                "INSERT INTO users (id,email,password_hash,name,age,gender,created_at) VALUES (?,?,?,?,?,?,?)",
-                (uid, email, pw_hash, name, int(age), gender, time.time())
+                "INSERT INTO users (id,email,password_hash,name,age,gender,orientation,looking_for,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+                (uid, email, pw_hash, name, int(age), gender, orientation, looking_for, time.time())
             )
             await db.commit()
     except aiosqlite.IntegrityError:
@@ -521,6 +577,10 @@ async def discover(request):
             rows = await cur.fetchall()
 
     my_mode = me["mode"]
+    my_lat = me["passport_lat"] or me["lat"]
+    my_lng = me["passport_lng"] or me["lng"]
+    max_km = 150  # default radius
+
     results = []
     for row in rows:
         their_mode = row["mode"]
@@ -528,6 +588,18 @@ async def discover(request):
             continue
         if my_mode == "friendship" and their_mode == "dating":
             continue
+
+        # Orientation / looking_for filter
+        if not _matches_looking_for(me, row):
+            continue
+
+        # Distance filter (only if both have location)
+        distance_km = None
+        if my_lat and my_lng and row["lat"] and row["lng"]:
+            distance_km = _haversine(my_lat, my_lng, row["lat"], row["lng"])
+            if distance_km > max_km:
+                continue
+
         results.append({
             "id": row["id"],
             "name": row["name"],
@@ -535,10 +607,12 @@ async def discover(request):
             "gender": row["gender"],
             "mode": row["mode"],
             "city": row["city"] or "",
+            "country": row["country"] or "",
             "interests": json.loads(row["interests"] or "[]"),
             "has_photo": bool(row["photo_b64"]),
             "photo_b64": row["photo_b64"] or "",
             "voice_b64": row["voice_b64"] or "",
+            "distance_km": round(distance_km) if distance_km else None,
         })
 
     return web.json_response(results[:20])
@@ -832,6 +906,42 @@ async def block_user(request):
 
 
 @require_auth
+async def update_location(request):
+    uid = request["uid"]
+    try:
+        d = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+    lat = d.get("lat")
+    lng = d.get("lng")
+    country = str(d.get("country", "")).strip()
+    if lat is None or lng is None:
+        return web.json_response({"error": "lat/lng required"}, status=400)
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE users SET lat=?,lng=?,country=? WHERE id=?", (lat, lng, country, uid))
+        await db.commit()
+    return web.json_response({"ok": True})
+
+
+@require_auth
+async def set_passport(request):
+    uid = request["uid"]
+    premium = await is_premium(uid)
+    if not premium:
+        return web.json_response({"error": "Premium gerekli"}, status=403)
+    try:
+        d = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+    lat = d.get("lat")
+    lng = d.get("lng")
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("UPDATE users SET passport_lat=?,passport_lng=? WHERE id=?", (lat, lng, uid))
+        await db.commit()
+    return web.json_response({"ok": True})
+
+
+@require_auth
 async def delete_account(request):
     uid = request["uid"]
     async with aiosqlite.connect(DB_PATH) as db:
@@ -999,6 +1109,8 @@ async def main():
     app.router.add_post("/api/report/{target_id}", report_user)
     app.router.add_post("/api/block/{target_id}", block_user)
     app.router.add_delete("/api/account", delete_account)
+    app.router.add_put("/api/location", update_location)
+    app.router.add_put("/api/passport", set_passport)
     app.router.add_get("/privacy", privacy_policy)
     app.router.add_get("/ws", ws_handler)
     app.router.add_get("/", index)

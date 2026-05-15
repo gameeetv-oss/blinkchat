@@ -253,10 +253,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 <!-- SPLASH -->
 <div id="screen-splash" class="screen active">
   <div class="splash-logo"><span>Vibe</span></div>
-  <p class="splash-sub">Sesine Aşık Ol ✨</p>
+  <p class="splash-sub" id="splash-sub">Sesine Aşık Ol ✨</p>
   <div class="splash-btns">
-    <button class="btn btn-primary" onclick="showScreen('login')">Giriş Yap</button>
-    <button class="btn btn-secondary" onclick="showScreen('register')">Kayıt Ol</button>
+    <button class="btn btn-primary" id="btn-splash-login" onclick="showScreen('login')">Giriş Yap</button>
+    <button class="btn btn-secondary" id="btn-splash-register" onclick="showScreen('register')">Kayıt Ol</button>
   </div>
 </div>
 
@@ -314,11 +314,27 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <input id="reg-birth" class="input" type="date" autocomplete="bday">
     </div>
     <div class="input-group">
-      <label class="input-label">CİNSİYET</label>
+      <label class="input-label" id="lbl-gender">CİNSİYET</label>
       <div class="gender-row">
-        <div class="gender-btn active" data-val="male" onclick="selectGender(this)">🙋‍♂️ Erkek</div>
-        <div class="gender-btn" data-val="female" onclick="selectGender(this)">🙋‍♀️ Kadın</div>
-        <div class="gender-btn" data-val="other" onclick="selectGender(this)">🏳️ Diğer</div>
+        <div class="gender-btn active" data-val="male" onclick="selectGender(this)" id="btn-male">🙋‍♂️ Erkek</div>
+        <div class="gender-btn" data-val="female" onclick="selectGender(this)" id="btn-female">🙋‍♀️ Kadın</div>
+        <div class="gender-btn" data-val="other" onclick="selectGender(this)" id="btn-other-gender">🏳️ Diğer</div>
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label" id="lbl-orientation">CİNSEL YÖNELİM</label>
+      <div class="gender-row" id="ori-row">
+        <div class="gender-btn active" data-val="straight" onclick="selectOrientation(this)">💑 Hetero</div>
+        <div class="gender-btn" data-val="gay" onclick="selectOrientation(this)">🏳️‍🌈 Eşcinsel</div>
+        <div class="gender-btn" data-val="bisexual" onclick="selectOrientation(this)">💜 Biseksüel</div>
+      </div>
+    </div>
+    <div class="input-group" id="looking-for-group">
+      <label class="input-label" id="lbl-looking">KİMİ ARIYORSUN</label>
+      <div class="gender-row" id="lf-row">
+        <div class="gender-btn active" data-val="women" onclick="selectLookingFor(this)" id="lf-women">👩 Kadınlar</div>
+        <div class="gender-btn" data-val="men" onclick="selectLookingFor(this)" id="lf-men">👨 Erkekler</div>
+        <div class="gender-btn" data-val="both" onclick="selectLookingFor(this)" id="lf-both">💫 Herkes</div>
       </div>
     </div>
     <div class="input-group">
@@ -587,7 +603,65 @@ const API = (() => {
   return '';
 })();
 
-const INTERESTS = ['Müzik','Film','Spor','Oyun','Seyahat','Yemek','Fitness','Sanat','Kitap','Dans','Fotoğraf','Moda','Teknoloji','Doğa','Yemek Yapmak'];
+// ── i18n ──────────────────────────────────────────────────
+const LANG = (navigator.language || 'tr').startsWith('tr') ? 'tr' : 'en';
+const T = {
+  tr: {
+    appSub: 'Sesine Aşık Ol ✨',
+    login: 'Giriş Yap', register: 'Kayıt Ol', logout: 'Çıkış Yap',
+    welcomeBack: 'Tekrar hoş geldin 👋', loginSub: 'Hesabına giriş yap',
+    createAccount: 'Hesap Oluştur', registerSub: 'Seni tanıyalım',
+    name: 'İSİM', namePlaceholder: 'Adın',
+    birthdate: 'DOĞUM TARİHİ', gender: 'CİNSİYET',
+    orientation: 'CİNSEL YÖNELİM', lookingFor: 'KİMİ ARIYORSUN',
+    email: 'EMAIL', password: 'ŞİFRE', pwPlaceholder: 'En az 6 karakter',
+    continueBtn: 'Devam Et →', alreadyHave: 'Zaten hesabın var mı?',
+    dontHave: 'Hesabın yok mu?', forgotPw: 'Şifremi Unuttum',
+    male: '🙋‍♂️ Erkek', female: '🙋‍♀️ Kadın', otherGender: '🏳️ Diğer',
+    straight: '💑 Heteroseksüel', gay: '🏳️‍🌈 Eşcinsel', bisexual: '💜 Biseksüel', otherOri: '🌈 Diğer',
+    wantMen: '👨 Erkekler', wantWomen: '👩 Kadınlar', wantBoth: '💫 Herkes',
+    discover: 'KEŞFET', matches: 'EŞLEŞMELERİM', profile: 'PROFİLİM',
+    km: 'km uzakta', noVoice: 'Ses kaydı yok',
+    likeLimit: 'Günlük limite ulaştın', premiumRequired: 'Premium gerekli',
+    deleteAccount: 'Hesabı Sil', deleteConfirm: 'Hesabını kalıcı olarak silmek istediğinden emin misin? Tüm veriler silinecek.',
+    accountDeleted: 'Hesabın silindi.',
+    locationRequired: 'Yakınındaki kişileri görmek için konum izni gerekli',
+    passport: '✈️ Pasaport', passportDesc: 'Dünyanın herhangi bir şehrinde ara',
+    support: 'Destek', contact: '📧 İletişim', privacy: '🔒 Gizlilik Politikası',
+    age18: 'Bu uygulama yalnızca 18+ kullanıcılara yöneliktir.',
+    privacyConsent: 'Devam ederek Gizlilik Politikası\'nı kabul etmiş olursunuz.',
+    interests_list: ['Müzik','Film','Spor','Oyun','Seyahat','Yemek','Fitness','Sanat','Kitap','Dans','Fotoğraf','Moda','Teknoloji','Doğa','Yemek Yapmak'],
+  },
+  en: {
+    appSub: 'Fall in Love with a Voice ✨',
+    login: 'Log In', register: 'Sign Up', logout: 'Log Out',
+    welcomeBack: 'Welcome back 👋', loginSub: 'Sign in to your account',
+    createAccount: 'Create Account', registerSub: 'Tell us about yourself',
+    name: 'NAME', namePlaceholder: 'Your name',
+    birthdate: 'DATE OF BIRTH', gender: 'GENDER',
+    orientation: 'SEXUAL ORIENTATION', lookingFor: 'LOOKING FOR',
+    email: 'EMAIL', password: 'PASSWORD', pwPlaceholder: 'At least 6 characters',
+    continueBtn: 'Continue →', alreadyHave: 'Already have an account?',
+    dontHave: "Don't have an account?", forgotPw: 'Forgot Password',
+    male: '🙋‍♂️ Male', female: '🙋‍♀️ Female', otherGender: '🏳️ Other',
+    straight: '💑 Straight', gay: '🏳️‍🌈 Gay / Lesbian', bisexual: '💜 Bisexual', otherOri: '🌈 Other',
+    wantMen: '👨 Men', wantWomen: '👩 Women', wantBoth: '💫 Everyone',
+    discover: 'DISCOVER', matches: 'MATCHES', profile: 'PROFILE',
+    km: 'km away', noVoice: 'No voice clip',
+    likeLimit: 'Daily like limit reached', premiumRequired: 'Premium required',
+    deleteAccount: 'Delete Account', deleteConfirm: 'Are you sure you want to permanently delete your account? All data will be erased.',
+    accountDeleted: 'Your account has been deleted.',
+    locationRequired: 'Location permission needed to show nearby people',
+    passport: '✈️ Passport', passportDesc: 'Search in any city worldwide',
+    support: 'Support', contact: '📧 Contact', privacy: '🔒 Privacy Policy',
+    age18: 'This app is for users 18 and older only.',
+    privacyConsent: 'By continuing you agree to our Privacy Policy.',
+    interests_list: ['Music','Movies','Sports','Gaming','Travel','Food','Fitness','Art','Books','Dancing','Photography','Fashion','Tech','Nature','Cooking'],
+  }
+};
+const t = T[LANG];
+
+const INTERESTS = t.interests_list;
 
 let token = localStorage.getItem('vibe_token') || '';
 let myProfile = null;
@@ -602,6 +676,8 @@ let voiceB64 = '';
 let voiceBlob = null;
 let setupData = { mode: 'both', city: '', interests: [] };
 let selectedGender = 'male';
+let selectedOrientation = 'straight';
+let selectedLookingFor = 'women';
 let currentStep = 1;
 const TOTAL_STEPS = 4;
 let currentPlayingAudio = null;
@@ -656,9 +732,36 @@ async function api(path, opts = {}) {
 // ── AUTH ──────────────────────────────────────────
 
 function selectGender(el) {
-  document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#btn-male,#btn-female,#btn-other-gender').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
   selectedGender = el.dataset.val;
+  updateLookingForDefault();
+}
+
+function selectOrientation(el) {
+  document.querySelectorAll('#ori-row .gender-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedOrientation = el.dataset.val;
+  updateLookingForDefault();
+}
+
+function selectLookingFor(el) {
+  document.querySelectorAll('#lf-row .gender-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  selectedLookingFor = el.dataset.val;
+}
+
+function updateLookingForDefault() {
+  let lf = 'both';
+  if (selectedOrientation === 'straight') {
+    lf = selectedGender === 'male' ? 'women' : 'men';
+  } else if (selectedOrientation === 'gay') {
+    lf = selectedGender === 'male' ? 'men' : 'women';
+  }
+  selectedLookingFor = lf;
+  document.querySelectorAll('#lf-row .gender-btn').forEach(b => b.classList.remove('active'));
+  const target = document.querySelector(`#lf-row .gender-btn[data-val="${lf}"]`);
+  if (target) target.classList.add('active');
 }
 
 async function doLogin() {
@@ -704,12 +807,17 @@ async function doRegister() {
   let age = today.getFullYear() - birth.getFullYear();
   const m = today.getMonth() - birth.getMonth();
   if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-  if (age < 18) return showError('reg-error', 'Bu uygulama yalnızca 18+ kullanıcılara yöneliktir');
+  if (age < 18) return showError('reg-error', t.age18);
   if (age > 99) return showError('reg-error', 'Geçerli bir doğum tarihi gir');
 
   showLoading(true);
   const { ok, data } = await api('/api/register', {
-    method: 'POST', body: JSON.stringify({ name, age, gender: selectedGender, email, password: pw })
+    method: 'POST', body: JSON.stringify({
+      name, age, gender: selectedGender,
+      orientation: selectedOrientation,
+      looking_for: selectedLookingFor,
+      email, password: pw
+    })
   });
   showLoading(false);
   if (!ok) return showError('reg-error', data.error || 'Kayıt başarısız');
@@ -932,7 +1040,23 @@ async function enterApp() {
   if (ok) myProfile = data;
   showScreen('app');
   loadPremiumStatus();
+  requestLocationAndUpdate();
   await loadDiscover();
+}
+
+async function requestLocationAndUpdate() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    let country = '';
+    try {
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+      const j = await r.json();
+      country = j.address?.country_code?.toUpperCase() || '';
+    } catch(e) {}
+    await api('/api/location', { method: 'PUT', body: JSON.stringify({ lat, lng, country }) });
+  }, () => {});
 }
 
 // ── DISCOVER ──────────────────────────────────────
@@ -971,7 +1095,7 @@ function renderCurrentCard() {
         <div class="card-mode-badge badge-${card.mode || 'both'}">${modeLabel}</div>
         <div class="card-info">
           <div class="card-name">${card.name}, ${card.age}</div>
-          <div class="card-meta">${card.city || 'Konum belirtilmemiş'}</div>
+          <div class="card-meta">${card.city || ''}${card.distance_km ? ` · ${card.distance_km} ${t.km}` : (card.country ? ` · ${card.country}` : '')}</div>
           <div class="card-chips">${(card.interests || []).slice(0,4).map(i => `<span class="card-chip">${i}</span>`).join('')}</div>
         </div>
       </div>
@@ -1358,6 +1482,28 @@ function showLimitBanner() {
   maxDate.setFullYear(maxDate.getFullYear() - 18);
   const el = document.getElementById('reg-birth');
   if (el) el.max = maxDate.toISOString().split('T')[0];
+
+  // Apply i18n
+  const i18nMap = {
+    'splash-sub': t.appSub,
+    'btn-splash-login': t.login,
+    'btn-splash-register': t.register,
+    'lbl-gender': t.gender,
+    'lbl-orientation': t.orientation,
+    'lbl-looking': t.lookingFor,
+    'btn-male': t.male, 'btn-female': t.female, 'btn-other-gender': t.otherGender,
+  };
+  Object.entries(i18nMap).forEach(([id, text]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  });
+  // Nav tabs
+  const navDiscover = document.getElementById('nav-discover');
+  if (navDiscover) navDiscover.querySelector('.nav-label').textContent = t.discover;
+  const navMatches = document.getElementById('nav-matches');
+  if (navMatches) navMatches.querySelector('.nav-label').textContent = t.matches;
+  const navProfile = document.getElementById('nav-profile');
+  if (navProfile) navProfile.querySelector('.nav-label').textContent = t.profile;
 
   if (token) await afterAuth();
 })();
