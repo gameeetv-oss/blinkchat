@@ -1104,7 +1104,11 @@ async def main():
         resp.headers.update(CORS_HEADERS)
         return resp
 
+    async def options_handler(request):
+        return web.Response(status=204, headers=CORS_HEADERS)
+
     app = web.Application(client_max_size=5 * 1024 * 1024, middlewares=[cors_middleware])
+    app.router.add_route("OPTIONS", "/{path_info:.*}", options_handler)
 
     app.router.add_post("/api/register", register)
     app.router.add_post("/api/login", login)
@@ -1131,7 +1135,6 @@ async def main():
     app.router.add_put("/api/passport", set_passport)
     app.router.add_get("/privacy", privacy_policy)
     app.router.add_get("/ws", ws_handler)
-    app.router.add_route("OPTIONS", "/{path_info:.*}", lambda r: web.Response())
     app.router.add_get("/", index)
     app.router.add_get("/ping", ping)
     app.router.add_static("/icons", BASE / "static" / "icons")
