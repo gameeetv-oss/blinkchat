@@ -1092,22 +1092,14 @@ async def main():
         "Access-Control-Allow-Headers": "Content-Type,Authorization",
     }
 
-    @web.middleware
-    async def cors_middleware(request, handler):
-        if request.method == "OPTIONS":
-            return web.Response(status=204, headers=CORS_HEADERS)
-        try:
-            resp = await handler(request)
-        except web.HTTPException as e:
-            e.headers.update(CORS_HEADERS)
-            raise
-        resp.headers.update(CORS_HEADERS)
-        return resp
-
     async def options_handler(request):
         return web.Response(status=204, headers=CORS_HEADERS)
 
-    app = web.Application(client_max_size=5 * 1024 * 1024, middlewares=[cors_middleware])
+    async def on_prepare(request, response):
+        response.headers.update(CORS_HEADERS)
+
+    app = web.Application(client_max_size=5 * 1024 * 1024)
+    app.on_response_prepare.append(on_prepare)
     app.router.add_route("OPTIONS", "/{path_info:.*}", options_handler)
 
     app.router.add_post("/api/register", register)
