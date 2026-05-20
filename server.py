@@ -1083,8 +1083,43 @@ async def keepalive():
 
 # ── MAIN ──────────────────────────────────────────────────
 
+async def seed_demo_users():
+    async with aiosqlite.connect(DB_PATH) as db:
+        async with db.execute("SELECT COUNT(*) FROM users WHERE email LIKE '%@demo.vibeapp.co' OR email='reviewer@vibeapp.co'") as cur:
+            count = (await cur.fetchone())[0]
+    if count >= 7:
+        return
+
+    pw_hash = hash_pw("Vibe2026!")
+    reviewer_hash = hash_pw("Review2026!")
+    now = time.time()
+
+    demo_users = [
+        (str(uuid.uuid4()), "ayse@demo.vibeapp.co",    pw_hash,       "Ayşe",   24, "female", "straight", "men",  "İstanbul", 41.0082, 28.9784),
+        (str(uuid.uuid4()), "elif@demo.vibeapp.co",    pw_hash,       "Elif",   27, "female", "straight", "men",  "Ankara",   39.9334, 32.8597),
+        (str(uuid.uuid4()), "zeynep@demo.vibeapp.co",  pw_hash,       "Zeynep", 22, "female", "straight", "men",  "İzmir",    38.4237, 27.1428),
+        (str(uuid.uuid4()), "mehmet@demo.vibeapp.co",  pw_hash,       "Mehmet", 26, "male",   "straight", "women","İstanbul", 41.0150, 28.9550),
+        (str(uuid.uuid4()), "can@demo.vibeapp.co",     pw_hash,       "Can",    29, "male",   "straight", "women","Ankara",   39.9400, 32.8700),
+        (str(uuid.uuid4()), "arda@demo.vibeapp.co",    pw_hash,       "Arda",   25, "male",   "straight", "women","İzmir",    38.4300, 27.1500),
+        (str(uuid.uuid4()), "reviewer@vibeapp.co",     reviewer_hash, "Reviewer",28,"male",   "straight", "women","İstanbul", 41.0082, 28.9784),
+    ]
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        for u in demo_users:
+            uid, email, pw, name, age, gender, orient, lf, city, lat, lng = u
+            await db.execute(
+                """INSERT OR IGNORE INTO users
+                   (id,email,password_hash,name,age,gender,orientation,looking_for,city,lat,lng,mode,setup_done,created_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1,?)""",
+                (uid, email, pw, name, age, gender, orient, lf, city, lat, lng, "both", now - 3600)
+            )
+        await db.commit()
+    logging.info("[SEED] Demo users ready")
+
+
 async def main():
     await init_db()
+    await seed_demo_users()
 
     CORS_HEADERS = {
         "Access-Control-Allow-Origin": "*",
